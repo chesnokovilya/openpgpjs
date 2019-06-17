@@ -8,7 +8,7 @@ const input = require('./testInputs.js');
 
 const expect = chai.expect;
 
-describe('Elliptic Curve Cryptography', function () {
+describe('Elliptic Nist Curves Cryptography', function () {
   const data = {
     romeo: {
       id: 'c2b12389b401a43d',

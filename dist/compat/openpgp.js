@@ -37378,45 +37378,60 @@ var kdf = function () {
 
 var genPublicEphemeralKey = function () {
   var _ref2 = (0, _asyncToGenerator3.default)( /*#__PURE__*/_regenerator2.default.mark(function _callee2(curve, Q) {
-    var _nacl$box$keyPair, d, _ref3, secretKey, _sharedKey, _nacl$box$keyPair$fro, _publicKey, v, publicKey, S, len, sharedKey;
+    var _nacl$box$keyPair, d, _ref3, secretKey, sharedKey, _nacl$box$keyPair$fro, publicKey, keyPair, _publicKey, S, _sharedKey, v, _publicKey2, _S, len, _sharedKey2;
 
     return _regenerator2.default.wrap(function _callee2$(_context2) {
       while (1) {
         switch (_context2.prev = _context2.next) {
           case 0:
-            if (!(curve.name === 'curve25519')) {
-              _context2.next = 10;
-              break;
-            }
+            _context2.t0 = curve.name;
+            _context2.next = _context2.t0 === 'curve25519' ? 3 : _context2.t0 === 'p256' ? 12 : _context2.t0 === 'p384' ? 12 : _context2.t0 === 'p521' ? 12 : 17;
+            break;
 
+          case 3:
             _nacl$box$keyPair = _naclFastLight2.default.box.keyPair(), d = _nacl$box$keyPair.secretKey;
-            _context2.next = 4;
+            _context2.next = 6;
             return genPrivateEphemeralKey(curve, Q, d);
 
-          case 4:
+          case 6:
             _ref3 = _context2.sent;
             secretKey = _ref3.secretKey;
-            _sharedKey = _ref3.sharedKey;
-            _nacl$box$keyPair$fro = _naclFastLight2.default.box.keyPair.fromSecretKey(secretKey), _publicKey = _nacl$box$keyPair$fro.publicKey;
+            sharedKey = _ref3.sharedKey;
+            _nacl$box$keyPair$fro = _naclFastLight2.default.box.keyPair.fromSecretKey(secretKey), publicKey = _nacl$box$keyPair$fro.publicKey;
 
-            _publicKey = _util2.default.concatUint8Array([new Uint8Array([0x40]), _publicKey]);
-            return _context2.abrupt('return', { publicKey: _publicKey, sharedKey: _sharedKey });
-
-          case 10:
-            _context2.next = 12;
-            return curve.genKeyPair();
+            publicKey = _util2.default.concatUint8Array([new Uint8Array([0x40]), publicKey]);
+            return _context2.abrupt('return', { publicKey: publicKey, sharedKey: sharedKey });
 
           case 12:
+            keyPair = window.crypto.subtle.generateKey({
+              name: "ECDH",
+              namedCurve: curve.web
+            }, true, ["deriveBits"]);
+            _publicKey = new Uint8Array(crypto.subtle.exportKey("raw", keyPair.publicKey));
+            S = window.crypto.subtle.deriveBits({
+              name: "ECDH",
+              namedCurve: curve.web,
+              public: Q
+            }, keyPair.privateKey, 128 //todo read on length of shared key
+            );
+            _sharedKey = new Uint8Array(S);
+            return _context2.abrupt('return', { publicKey: _publicKey, sharedKey: _sharedKey });
+
+          case 17:
+            _context2.next = 19;
+            return curve.genKeyPair();
+
+          case 19:
             v = _context2.sent;
 
             Q = curve.keyFromPublic(Q);
-            publicKey = new Uint8Array(v.getPublic());
-            S = v.derive(Q);
+            _publicKey2 = new Uint8Array(v.getPublic());
+            _S = v.derive(Q);
             len = curve.curve.curve.p.byteLength();
-            sharedKey = S.toArrayLike(Uint8Array, 'be', len);
-            return _context2.abrupt('return', { publicKey: publicKey, sharedKey: sharedKey });
+            _sharedKey2 = _S.toArrayLike(Uint8Array, 'be', len);
+            return _context2.abrupt('return', { publicKey: _publicKey2, sharedKey: _sharedKey2 });
 
-          case 19:
+          case 26:
           case 'end':
             return _context2.stop();
         }
@@ -37496,37 +37511,51 @@ var encrypt = function () {
 
 var genPrivateEphemeralKey = function () {
   var _ref6 = (0, _asyncToGenerator3.default)( /*#__PURE__*/_regenerator2.default.mark(function _callee4(curve, V, d) {
-    var one, mask, _secretKey, _sharedKey2, secretKey, S, len, sharedKey;
+    var one, mask, secretKey, sharedKey, keyPair, _secretKey, S, _sharedKey3, _secretKey2, _S2, len, _sharedKey4;
 
     return _regenerator2.default.wrap(function _callee4$(_context4) {
       while (1) {
         switch (_context4.prev = _context4.next) {
           case 0:
-            if (!(curve.name === 'curve25519')) {
-              _context4.next = 9;
-              break;
-            }
+            _context4.t0 = curve.name;
+            _context4.next = _context4.t0 === 'curve25519' ? 3 : _context4.t0 === 'p256' ? 11 : _context4.t0 === 'p384' ? 11 : _context4.t0 === 'p521' ? 11 : 16;
+            break;
 
+          case 3:
             one = new _bn2.default(1);
             mask = one.ushln(255 - 3).sub(one).ushln(3);
-            _secretKey = new _bn2.default(d);
+            secretKey = new _bn2.default(d);
 
-            _secretKey = _secretKey.or(one.ushln(255 - 1));
-            _secretKey = _secretKey.and(mask);
-            _secretKey = _secretKey.toArrayLike(Uint8Array, 'le', 32);
-            _sharedKey2 = _naclFastLight2.default.scalarMult(_secretKey, V.subarray(1));
-            return _context4.abrupt('return', { secretKey: _secretKey, sharedKey: _sharedKey2 });
-
-          case 9:
-            V = curve.keyFromPublic(V);
-            d = curve.keyFromPrivate(d);
-            secretKey = new Uint8Array(d.getPrivate());
-            S = d.derive(V);
-            len = curve.curve.curve.p.byteLength();
-            sharedKey = S.toArrayLike(Uint8Array, 'be', len);
+            secretKey = secretKey.or(one.ushln(255 - 1));
+            secretKey = secretKey.and(mask);
+            secretKey = secretKey.toArrayLike(Uint8Array, 'le', 32);
+            sharedKey = _naclFastLight2.default.scalarMult(secretKey, V.subarray(1));
             return _context4.abrupt('return', { secretKey: secretKey, sharedKey: sharedKey });
 
+          case 11:
+            keyPair = window.crypto.subtle.importKey("raw", d.buffer, {
+              name: "ECDH",
+              namedCurve: curve.web
+            }, ["deriveBits"]);
+            _secretKey = new Uint8Array(crypto.subtle.exportKey("raw", keyPair.privateKey));
+            S = window.crypto.subtle.deriveBits({
+              name: "ECDH",
+              namedCurve: curve.web,
+              public: V
+            }, keyPair.privateKey, 128);
+            _sharedKey3 = new Uint8Array(S);
+            return _context4.abrupt('return', { secretKey: _secretKey, sharedKey: _sharedKey3 });
+
           case 16:
+            V = curve.keyFromPublic(V);
+            d = curve.keyFromPrivate(d);
+            _secretKey2 = new Uint8Array(d.getPrivate());
+            _S2 = d.derive(V);
+            len = curve.curve.curve.p.byteLength();
+            _sharedKey4 = _S2.toArrayLike(Uint8Array, 'be', len);
+            return _context4.abrupt('return', { secretKey: _secretKey2, sharedKey: _sharedKey4 });
+
+          case 23:
           case 'end':
             return _context4.stop();
         }
@@ -37652,13 +37681,12 @@ var _util = _dereq_('../../../util');
 
 var _util2 = _interopRequireDefault(_util);
 
+var _zlib = _dereq_('zlib');
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 // Build Param for ECDH algorithm (RFC 6637)
-function buildEcdhParam(public_algo, oid, cipher_algo, hash_algo, fingerprint) {
-  var kdf_params = new _kdf_params2.default([hash_algo, cipher_algo]);
-  return _util2.default.concatUint8Array([oid.write(), new Uint8Array([public_algo]), kdf_params.write(), _util2.default.str_to_Uint8Array("Anonymous Sender    "), fingerprint.subarray(0, 20)]);
-} // OpenPGP.js - An OpenPGP implementation in javascript
+// OpenPGP.js - An OpenPGP implementation in javascript
 // Copyright (C) 2015-2016 Decentral
 //
 // This library is free software; you can redistribute it and/or
@@ -37689,9 +37717,12 @@ function buildEcdhParam(public_algo, oid, cipher_algo, hash_algo, fingerprint) {
  * @module crypto/public_key/elliptic/ecdh
  */
 
-exports.default = { encrypt: encrypt, decrypt: decrypt, genPublicEphemeralKey: genPublicEphemeralKey, genPrivateEphemeralKey: genPrivateEphemeralKey, buildEcdhParam: buildEcdhParam, kdf: kdf };
+function buildEcdhParam(public_algo, oid, cipher_algo, hash_algo, fingerprint) {
+  var kdf_params = new _kdf_params2.default([hash_algo, cipher_algo]);
+  return _util2.default.concatUint8Array([oid.write(), new Uint8Array([public_algo]), kdf_params.write(), _util2.default.str_to_Uint8Array("Anonymous Sender    "), fingerprint.subarray(0, 20)]);
+}exports.default = { encrypt: encrypt, decrypt: decrypt, genPublicEphemeralKey: genPublicEphemeralKey, genPrivateEphemeralKey: genPrivateEphemeralKey, buildEcdhParam: buildEcdhParam, kdf: kdf };
 
-},{"../../../enums":385,"../../../type/kdf_params":419,"../../../util":424,"../../aes_kw":352,"../../cipher":358,"../../hash":364,"./curves":372,"babel-runtime/helpers/asyncToGenerator":36,"babel-runtime/regenerator":44,"bn.js":45,"tweetnacl/nacl-fast-light.js":343}],374:[function(_dereq_,module,exports){
+},{"../../../enums":385,"../../../type/kdf_params":419,"../../../util":424,"../../aes_kw":352,"../../cipher":358,"../../hash":364,"./curves":372,"babel-runtime/helpers/asyncToGenerator":36,"babel-runtime/regenerator":44,"bn.js":45,"tweetnacl/nacl-fast-light.js":343,"zlib":"zlib"}],374:[function(_dereq_,module,exports){
 'use strict';
 
 Object.defineProperty(exports, "__esModule", {

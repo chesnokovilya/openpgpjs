@@ -25364,7 +25364,7 @@ exports.default = {
    * @memberof module:config
    * @property {String} versionstring A version string to be included in armored messages
    */
-  versionstring: "OpenPGP.js v4.5.3",
+  versionstring: "OpenPGP.js VERSION",
   /**
    * @memberof module:config
    * @property {String} commentstring A comment string to be included in armored messages
@@ -29353,7 +29353,10 @@ const curves = {
     cipher: _enums2.default.symmetric.aes128,
     node: nodeCurves.p256,
     web: webCurves.p256,
-    payloadSize: 32
+    payloadSize: 32,
+    sharedSize: 256,
+    //Seq, Int[0], Seq, 1.2.840.10045.2.1, 1.2.840.10045.3.1.7, EndSeq, Seq[0x04], Seq, Int(1), Seq(0x04)
+    psck8Prefix: [48, 65, 2, 1, 0, 48, 19, 6, 7, 42, 134, 72, 206, 61, 2, 1, 6, 8, 42, 134, 72, 206, 61, 3, 1, 7, 4, 39, 48, 37, 2, 1, 1, 4, 32]
   },
   p384: {
     oid: [0x06, 0x05, 0x2B, 0x81, 0x04, 0x00, 0x22],
@@ -29362,7 +29365,10 @@ const curves = {
     cipher: _enums2.default.symmetric.aes192,
     node: nodeCurves.p384,
     web: webCurves.p384,
-    payloadSize: 48
+    payloadSize: 48,
+    sharedSize: 384,
+    //Seq, Int[0], Seq, 1.2.840.10045.2.1, 1.3.132.0.34, EndSeq, Seq[0x04], Seq, Int(1), Seq(0x04)
+    psck8Prefix: [48, 78, 2, 1, 0, 48, 16, 6, 7, 42, 134, 72, 206, 61, 2, 1, 6, 5, 43, 129, 4, 0, 34, 4, 55, 48, 53, 2, 1, 1, 4, 48]
   },
   p521: {
     oid: [0x06, 0x05, 0x2B, 0x81, 0x04, 0x00, 0x23],
@@ -29371,7 +29377,10 @@ const curves = {
     cipher: _enums2.default.symmetric.aes256,
     node: nodeCurves.p521,
     web: webCurves.p521,
-    payloadSize: 66
+    payloadSize: 66,
+    sharedSize: 528,
+    //Seq, Int[0], Seq, 1.2.840.10045.2.1, 1.3.132.0.35, EndSeq, Seq[0x04], Seq, Int(1), Seq(0x04)
+    psck8Prefix: [48, 96, 2, 1, 0, 48, 16, 6, 7, 42, 134, 72, 206, 61, 2, 1, 6, 5, 43, 129, 4, 0, 35, 4, 73, 48, 71, 2, 1, 1, 4, 66] //dummy
   },
   secp256k1: {
     oid: [0x06, 0x05, 0x2B, 0x81, 0x04, 0x00, 0x0A],
@@ -29599,14 +29608,7 @@ var _util2 = _interopRequireDefault(_util);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-// Build Param for ECDH algorithm (RFC 6637)
-function buildEcdhParam(public_algo, oid, cipher_algo, hash_algo, fingerprint) {
-  const kdf_params = new _kdf_params2.default([hash_algo, cipher_algo]);
-  return _util2.default.concatUint8Array([oid.write(), new Uint8Array([public_algo]), kdf_params.write(), _util2.default.str_to_Uint8Array("Anonymous Sender    "), fingerprint.subarray(0, 20)]);
-}
-
-// Key Derivation Function (RFC 6637)
-// OpenPGP.js - An OpenPGP implementation in javascript
+const webCrypto = _util2.default.getWebCrypto(); // OpenPGP.js - An OpenPGP implementation in javascript
 // Copyright (C) 2015-2016 Decentral
 //
 // This library is free software; you can redistribute it and/or
@@ -29637,6 +29639,15 @@ function buildEcdhParam(public_algo, oid, cipher_algo, hash_algo, fingerprint) {
  * @module crypto/public_key/elliptic/ecdh
  */
 
+const nodeCrypto = _util2.default.getNodeCrypto();
+
+// Build Param for ECDH algorithm (RFC 6637)
+function buildEcdhParam(public_algo, oid, cipher_algo, hash_algo, fingerprint) {
+  const kdf_params = new _kdf_params2.default([hash_algo, cipher_algo]);
+  return _util2.default.concatUint8Array([oid.write(), new Uint8Array([public_algo]), kdf_params.write(), _util2.default.str_to_Uint8Array("Anonymous Sender    "), fingerprint.subarray(0, 20)]);
+}
+
+// Key Derivation Function (RFC 6637)
 async function kdf(hash_algo, X, length, param, stripLeading = false, stripTrailing = false) {
   // Note: X is little endian for Curve25519, big-endian for all others.
   // This is not ideal, but the RFC's are unclear
@@ -29665,30 +29676,47 @@ async function kdf(hash_algo, X, length, param, stripLeading = false, stripTrail
  * @async
  */
 async function genPublicEphemeralKey(curve, Q) {
-  if (curve.name === 'curve25519') {
-    var _nacl$box$keyPair = _naclFastLight2.default.box.keyPair();
+  switch (curve.name) {
+    case 'curve25519':
+      {
+        var _nacl$box$keyPair = _naclFastLight2.default.box.keyPair();
 
-    const d = _nacl$box$keyPair.secretKey;
+        const d = _nacl$box$keyPair.secretKey;
 
-    var _ref = await genPrivateEphemeralKey(curve, Q, d);
+        var _ref = await genPrivateEphemeralKey(curve, Q, d);
 
-    const secretKey = _ref.secretKey,
-          sharedKey = _ref.sharedKey;
+        const secretKey = _ref.secretKey,
+              sharedKey = _ref.sharedKey;
 
-    var _nacl$box$keyPair$fro = _naclFastLight2.default.box.keyPair.fromSecretKey(secretKey);
+        var _nacl$box$keyPair$fro = _naclFastLight2.default.box.keyPair.fromSecretKey(secretKey);
 
-    let publicKey = _nacl$box$keyPair$fro.publicKey;
+        let publicKey = _nacl$box$keyPair$fro.publicKey;
 
-    publicKey = _util2.default.concatUint8Array([new Uint8Array([0x40]), publicKey]);
-    return { publicKey, sharedKey }; // Note: sharedKey is little-endian here, unlike below
+        publicKey = _util2.default.concatUint8Array([new Uint8Array([0x40]), publicKey]);
+        return { publicKey, sharedKey }; // Note: sharedKey is little-endian here, unlike below
+      }
+    case 'p256':
+    case 'p384':
+    case 'p521':
+      {
+        let result;
+        if (curve.web && _util2.default.getWebCrypto()) {
+          try {
+            result = await webPublicEphemeralKey(curve, Q);
+          } catch (err) {
+            result = await ellipticPublicEphemeralKey(curve, Q);
+          }
+        } else {
+          result = await ellipticPublicEphemeralKey(curve, Q);
+        }
+        return result;
+      }
+    default:
+      {
+        const result = await ellipticPublicEphemeralKey(curve, Q);
+        return result;
+      }
   }
-  const v = await curve.genKeyPair();
-  Q = curve.keyFromPublic(Q);
-  const publicKey = new Uint8Array(v.getPublic());
-  const S = v.derive(Q);
-  const len = curve.curve.curve.p.byteLength();
-  const sharedKey = S.toArrayLike(Uint8Array, 'be', len);
-  return { publicKey, sharedKey };
 }
 
 /**
@@ -29728,23 +29756,40 @@ async function encrypt(oid, cipher_algo, hash_algo, m, Q, fingerprint) {
  * @async
  */
 async function genPrivateEphemeralKey(curve, V, d) {
-  if (curve.name === 'curve25519') {
-    const one = new _bn2.default(1);
-    const mask = one.ushln(255 - 3).sub(one).ushln(3);
-    let secretKey = new _bn2.default(d);
-    secretKey = secretKey.or(one.ushln(255 - 1));
-    secretKey = secretKey.and(mask);
-    secretKey = secretKey.toArrayLike(Uint8Array, 'le', 32);
-    const sharedKey = _naclFastLight2.default.scalarMult(secretKey, V.subarray(1));
-    return { secretKey, sharedKey }; // Note: sharedKey is little-endian here, unlike below
+  switch (curve.name) {
+    case 'curve25519':
+      {
+        const one = new _bn2.default(1);
+        const mask = one.ushln(255 - 3).sub(one).ushln(3);
+        let secretKey = new _bn2.default(d);
+        secretKey = secretKey.or(one.ushln(255 - 1));
+        secretKey = secretKey.and(mask);
+        secretKey = secretKey.toArrayLike(Uint8Array, 'le', 32);
+        const sharedKey = _naclFastLight2.default.scalarMult(secretKey, V.subarray(1));
+        return { secretKey, sharedKey }; // Note: sharedKey is little-endian here, unlike below
+      }
+    case 'p256':
+    case 'p384':
+    case 'p521':
+      {
+        let result;
+        if (curve.web && _util2.default.getWebCrypto()) {
+          try {
+            result = await webPrivateEphemeralKey(curve, V, d);
+          } catch (err) {
+            result = await ellipticPrivateEphemeralKey(curve, V, d);
+          }
+        } else {
+          result = await ellipticPrivateEphemeralKey(curve, V, d);
+        }
+        return result;
+      }
+    default:
+      {
+        const result = await ellipticPrivateEphemeralKey(curve, V, d);
+        return result;
+      }
   }
-  V = curve.keyFromPublic(V);
-  d = curve.keyFromPrivate(d);
-  const secretKey = new Uint8Array(d.getPrivate());
-  const S = d.derive(V);
-  const len = curve.curve.curve.p.byteLength();
-  const sharedKey = S.toArrayLike(Uint8Array, 'be', len);
-  return { secretKey, sharedKey };
 }
 
 /**
@@ -29782,7 +29827,122 @@ async function decrypt(oid, cipher_algo, hash_algo, V, C, d, fingerprint) {
   throw err;
 }
 
-exports.default = { encrypt, decrypt, genPublicEphemeralKey, genPrivateEphemeralKey, buildEcdhParam, kdf };
+/**
+ * Generate ECDHE secret from private key and public part of ephemeral key using webCrypto
+ *
+ * @param  {Curve}                  curve        Elliptic curve object
+ * @param  {Uint8Array}             V            Public part of ephemeral key
+ * @param  {Uint8Array}             d            Recipient private key
+ * @returns {Promise<BN>}                        Generated ephemeral secret
+ * @async
+ */
+async function webPrivateEphemeralKey(curve, V, d) {
+  const k = await rawPrivateToPsck8(curve, d);
+  const keyPair = await webCrypto.importKey("pkcs8", k, {
+    name: "ECDH",
+    namedCurve: curve.web.web
+  }, true, ["deriveKey", "deriveBits"]);
+  const jwk = await rawPublicToJwk(curve, V);
+  const sender = await webCrypto.importKey("jwk", jwk, {
+    name: "ECDH",
+    namedCurve: curve.web.web
+  }, true, []);
+  const S = await webCrypto.deriveBits({
+    name: "ECDH",
+    namedCurve: curve.web.web,
+    public: sender
+  }, keyPair, curve.web.sharedSize);
+  const sharedKey = new Uint8Array(S);
+  const secretKey = d;
+  return { secretKey, sharedKey };
+}
+
+/**
+ * Generate ECDHE ephemeral key and secret from public key using webCrypto
+ *
+ * @param  {Curve}                  curve        Elliptic curve object
+ * @param  {Uint8Array}             Q                   Recipient public key
+ * @returns {Promise<{V: Uint8Array, S: BN}>}   Returns public part of ephemeral key and generated ephemeral secret
+ * @async
+ */
+async function webPublicEphemeralKey(curve, Q) {
+  const keyPair = await webCrypto.generateKey({
+    name: "ECDH",
+    namedCurve: curve.web.web
+  }, true, ["deriveKey", "deriveBits"]);
+  const p = await webCrypto.exportKey("jwk", keyPair.publicKey);
+  const publicKey = new Uint8Array((await jwkToRawPublic(p)));
+  const jwk = await rawPublicToJwk(curve, Q);
+  const recipient = await webCrypto.importKey("jwk", jwk, {
+    name: "ECDH",
+    namedCurve: curve.web.web
+  }, false, []);
+  const s = await webCrypto.deriveBits({
+    name: "ECDH",
+    namedCurve: curve.web.web,
+    public: recipient
+  }, keyPair.privateKey, curve.web.sharedSize);
+  const sharedKey = new Uint8Array(s);
+  return { publicKey, sharedKey };
+}
+
+async function ellipticPrivateEphemeralKey(curve, V, d) {
+  V = curve.keyFromPublic(V);
+  d = curve.keyFromPrivate(d);
+  const secretKey = new Uint8Array(d.getPrivate());
+  const S = d.derive(V);
+  const len = curve.curve.curve.p.byteLength();
+  const sharedKey = S.toArrayLike(Uint8Array, 'be', len);
+  return { secretKey, sharedKey };
+}
+
+async function ellipticPublicEphemeralKey(curve, Q) {
+  const v = await curve.genKeyPair();
+  Q = curve.keyFromPublic(Q);
+  const publicKey = new Uint8Array(v.getPublic());
+  const S = v.derive(Q);
+  const len = curve.curve.curve.p.byteLength();
+  const sharedKey = S.toArrayLike(Uint8Array, 'be', len);
+  return { publicKey, sharedKey };
+}
+
+/**
+ * @param  {Curve}                  curve        Elliptic curve object
+ * @param  {Uint8Array}             publicKey    public key
+ */
+async function rawPublicToJwk(curve, publicKey) {
+  const len = curve.payloadSize;
+  const bufX = publicKey.slice(1, len + 1);
+  const bufY = publicKey.slice(len + 1, len * 2 + 1);
+  const jwKey = { // https://www.rfc-editor.org/rfc/rfc7518.txt
+    kty: "EC",
+    crv: curve.web.web,
+    x: _util2.default.Uint8Array_to_b64(bufX, true),
+    y: _util2.default.Uint8Array_to_b64(bufY, true),
+    ext: true
+  };
+  return jwKey;
+}
+
+async function jwkToRawPublic(jwk) {
+  const bufX = _util2.default.b64_to_Uint8Array(jwk.x);
+  const bufY = _util2.default.b64_to_Uint8Array(jwk.y);
+  const publicKey = new Uint8Array(bufX.length + bufY.length + 1);
+  publicKey[0] = 0xFF & 0x04;
+  publicKey.set(bufX, 1);
+  publicKey.set(bufY, bufX.length + 1);
+  return publicKey;
+}
+
+async function rawPrivateToPsck8(curve, key) {
+  const prefix = new Uint8Array(curve.web.psck8Prefix);
+  const tmp = new Uint8Array(key.byteLength + prefix.byteLength);
+  tmp.set(prefix, 0);
+  tmp.set(key, prefix.byteLength);
+  return tmp;
+}
+
+exports.default = { encrypt, decrypt, genPublicEphemeralKey, genPrivateEphemeralKey, buildEcdhParam, kdf, webPublicEphemeralKey, ellipticPublicEphemeralKey, ellipticPrivateEphemeralKey, webPrivateEphemeralKey };
 
 },{"../../../enums":114,"../../../type/kdf_params":148,"../../../util":153,"../../aes_kw":81,"../../cipher":87,"../../hash":93,"./curves":101,"bn.js":17,"tweetnacl/nacl-fast-light.js":73}],103:[function(require,module,exports){
 'use strict';
