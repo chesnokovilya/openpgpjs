@@ -2,6 +2,9 @@ const openpgp = typeof window !== 'undefined' && window.openpgp ? window.openpgp
 
 const BN = require('bn.js');
 const chai = require('chai');
+
+const { util } = openpgp;
+
 chai.use(require('chai-as-promised'));
 
 const expect = chai.expect;
@@ -25,7 +28,8 @@ describe('Elliptic Curve Cryptography', function () {
         0x6F, 0xAA, 0xE7, 0xFD, 0xC4, 0x7D, 0x89, 0xCC,
         0x06, 0xCA, 0xFE, 0xAE, 0xCD, 0x0E, 0x9E, 0x62,
         0x57, 0xA4, 0xC3, 0xE7, 0x5E, 0x69, 0x10, 0xEE,
-        0x67, 0xC2, 0x09, 0xF9, 0xEF, 0xE7, 0x9E, 0x56])
+        0x67, 0xC2, 0x09, 0xF9, 0xEF, 0xE7, 0x9E, 0x56
+      ])
     },
     p384: {
       priv: new Uint8Array([
@@ -443,6 +447,7 @@ describe('Elliptic Curve Cryptography', function () {
     );
     return { V, Z };
   }
+
   async function genPrivateEphemeralKey(curve, V, d, fingerprint) {
     const curveObj = new openpgp.crypto.publicKey.elliptic.Curve(curve);
     const oid = new openpgp.OID(curveObj.oid);
@@ -460,6 +465,43 @@ describe('Elliptic Curve Cryptography', function () {
     );
     return Z;
   }
+
+  async function genWebPrivateEphemeralKey(curve, V, d, fingerprint) {
+    const curveObj = new openpgp.crypto.publicKey.elliptic.Curve(curve);
+    const oid = new openpgp.OID(curveObj.oid);
+    const { sharedKey } = await openpgp.crypto.publicKey.elliptic.ecdh.webPrivateEphemeralKey(
+      curveObj, V, d
+    );
+    let cipher_algo = curveObj.cipher;
+    const hash_algo = curveObj.hash;
+    const param = openpgp.crypto.publicKey.elliptic.ecdh.buildEcdhParam(
+      openpgp.enums.publicKey.ecdh, oid, cipher_algo, hash_algo, fingerprint
+    );
+    cipher_algo = openpgp.enums.read(openpgp.enums.symmetric, cipher_algo);
+    const Z = await openpgp.crypto.publicKey.elliptic.ecdh.kdf(
+      hash_algo, sharedKey, openpgp.crypto.cipher[cipher_algo].keySize, param, curveObj, false
+    );
+    return Z;
+  }
+
+  async function genEllipticPrivateEphemeralKey(curve, V, d, fingerprint) {
+    const curveObj = new openpgp.crypto.publicKey.elliptic.Curve(curve);
+    const oid = new openpgp.OID(curveObj.oid);
+    const { sharedKey } = await openpgp.crypto.publicKey.elliptic.ecdh.ellipticPrivateEphemeralKey(
+      curveObj, V, d
+    );
+    let cipher_algo = curveObj.cipher;
+    const hash_algo = curveObj.hash;
+    const param = openpgp.crypto.publicKey.elliptic.ecdh.buildEcdhParam(
+      openpgp.enums.publicKey.ecdh, oid, cipher_algo, hash_algo, fingerprint
+    );
+    cipher_algo = openpgp.enums.read(openpgp.enums.symmetric, cipher_algo);
+    const Z = await openpgp.crypto.publicKey.elliptic.ecdh.kdf(
+      hash_algo, sharedKey, openpgp.crypto.cipher[cipher_algo].keySize, param, curveObj, false
+    );
+    return Z;
+  }
+
   describe('ECDHE key generation', function () {
     it('Invalid curve', function (done) {
       expect(genPublicEphemeralKey("secp256k1", Q1, fingerprint1)
@@ -481,10 +523,38 @@ describe('Elliptic Curve Cryptography', function () {
       const ECDHE_Z1 = await genPrivateEphemeralKey("curve25519", ECDHE_VZ1.V, d1, fingerprint1);
       expect(Array.from(ECDHE_Z1).join(' ') === Array.from(ECDHE_VZ2.Z).join(' ')).to.be.false;
     });
-    it('Successful exchange', async function () {
+    it('Successful exchange curve25519', async function () {
       const ECDHE_VZ1 = await genPublicEphemeralKey("curve25519", Q1, fingerprint1);
       const ECDHE_Z1 = await genPrivateEphemeralKey("curve25519", ECDHE_VZ1.V, d1, fingerprint1);
       expect(Array.from(ECDHE_Z1).join(' ') === Array.from(ECDHE_VZ1.Z).join(' ')).to.be.true;
+    });
+    it('Successful exchange NIST P256', async function () {
+      const ECDHE_VZ1 = await genPublicEphemeralKey("p256", key_data.p256.pub, fingerprint1);
+      const ECDHE_Z1 = await genPrivateEphemeralKey("p256", ECDHE_VZ1.V, key_data.p256.priv, fingerprint1);
+      expect(Array.from(ECDHE_Z1).join(' ') === Array.from(ECDHE_VZ1.Z).join(' ')).to.be.true;
+    });
+    it('Successful exchange NIST P384', async function () {
+      const ECDHE_VZ1 = await genPublicEphemeralKey("p384", key_data.p384.pub, fingerprint1); 
+      const ECDHE_Z1 = await genPrivateEphemeralKey("p384", ECDHE_VZ1.V, key_data.p384.priv, fingerprint1);
+      expect(Array.from(ECDHE_Z1).join(' ') === Array.from(ECDHE_VZ1.Z).join(' ')).to.be.true;
+    });
+    it('Successful exchange NIST P521', async function () {
+      const ECDHE_VZ1 = await genPublicEphemeralKey("p521", key_data.p521.pub, fingerprint1);
+      const ECDHE_Z1 = await genPrivateEphemeralKey("p521", ECDHE_VZ1.V, key_data.p521.priv, fingerprint1);
+      expect(Array.from(ECDHE_Z1).join(' ') === Array.from(ECDHE_VZ1.Z).join(' ')).to.be.true;
+    });
+    it('Comparing key derived using different algorithms', async function () {
+      const names = ["p256", "p384", "p521"];
+      if (util.detectNode()) {
+          this.skip();
+      }
+      return Promise.all(names.map(async function (name) {
+        const ECDHE_VZ1 = await genPublicEphemeralKey(name,  key_data[name].pub, fingerprint1);
+        const ECDHE_Z1 = await genEllipticPrivateEphemeralKey(name, ECDHE_VZ1.V, key_data[name].priv, fingerprint1);
+        const ECDHE_Z2 = await genWebPrivateEphemeralKey(name, ECDHE_VZ1.V,  key_data[name].priv, fingerprint1);
+        expect(Array.from(ECDHE_Z1).join(' ') === Array.from(ECDHE_VZ1.Z).join(' ')).to.be.true;
+        expect(Array.from(ECDHE_Z1).join(' ') === Array.from(ECDHE_Z2).join(' ')).to.be.true;
+      }));
     });
   });
 });
