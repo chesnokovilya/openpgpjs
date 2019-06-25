@@ -139,8 +139,9 @@ export default {
         const V = data_params[0].toUint8Array();
         const C = data_params[1].data;
         const d = key_params[3].toUint8Array();
+        const Q = key_params[1].toUint8Array();
         return publicKey.elliptic.ecdh.decrypt(
-          oid, kdf_params.cipher, kdf_params.hash, V, C, d, fingerprint);
+          oid, kdf_params.cipher, kdf_params.hash, V, C, d, Q, fingerprint);
       }
       default:
         throw new Error('Invalid public key encryption algorithm.');
