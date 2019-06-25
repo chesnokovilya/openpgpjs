@@ -65,9 +65,7 @@ const curves = {
     node: nodeCurves.p256,
     web: webCurves.p256,
     payloadSize: 32,
-    sharedSize: 256,
-    //Seq, Int[0], Seq, 1.2.840.10045.2.1, 1.2.840.10045.3.1.7, EndSeq, Seq[0x04], Seq, Int(1), Seq(0x04)
-    pkcs8Prefix: new Uint8Array([48,65,2,1,0,48,19,6,7,42,134,72,206,61,2,1,6,8,42,134,72,206,61,3,1,7,4,39,48,37,2,1,1,4,32])
+    sharedSize: 256
   },
   p384: {
     oid: [0x06, 0x05, 0x2B, 0x81, 0x04, 0x00, 0x22],
@@ -77,9 +75,7 @@ const curves = {
     node: nodeCurves.p384,
     web: webCurves.p384,
     payloadSize: 48,
-    sharedSize: 384,
-    //Seq, Int[0], Seq, 1.2.840.10045.2.1, 1.3.132.0.34, EndSeq, Seq[0x04], Seq, Int(1), Seq(0x04)
-    pkcs8Prefix: new Uint8Array([48,78,2,1,0,48,16,6,7,42,134,72,206,61,2,1,6,5,43,129,4,0,34,4,55,48,53,2,1,1,4,48])
+    sharedSize: 384
   },
   p521: {
     oid: [0x06, 0x05, 0x2B, 0x81, 0x04, 0x00, 0x23],
@@ -89,9 +85,7 @@ const curves = {
     node: nodeCurves.p521,
     web: webCurves.p521,
     payloadSize: 66,
-    sharedSize: 528,
-    //Seq, Int[0], Seq, 1.2.840.10045.2.1, 1.3.132.0.35, EndSeq, Seq[0x04], Seq, Int(1), Seq(0x04)
-    pkcs8Prefix: new Uint8Array([48,96,2,1,0,48,16,6,7,42,134,72,206,61,2,1,6,5,43,129,4,0,35,4,73,48,71,2,1,1,4,66])
+    sharedSize: 528
   },
   secp256k1: {
     oid: [0x06, 0x05, 0x2B, 0x81, 0x04, 0x00, 0x0A],
