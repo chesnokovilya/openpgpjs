@@ -344,6 +344,7 @@ describe('Elliptic Curve Cryptography', function () {
           data,
           new Uint8Array(pub),
           new Uint8Array(priv),
+          new Uint8Array(pub),
           new Uint8Array(fingerprint)
         );
       });
@@ -400,7 +401,7 @@ describe('Elliptic Curve Cryptography', function () {
       )).to.be.rejectedWith(Error, /Key Data Integrity failed/).notify(done);
     });
   });
-  
+
   const Q1 = new Uint8Array([
       64,
       48,  226,  162,  114,  194,  194,  67, 214,
@@ -535,7 +536,7 @@ describe('Elliptic Curve Cryptography', function () {
       expect(Array.from(ECDHE_Z1).join(' ') === Array.from(ECDHE_VZ1.Z).join(' ')).to.be.true;
     });
     it('Successful exchange NIST P384', async function () {
-      const ECDHE_VZ1 = await genPublicEphemeralKey("p384", key_data.p384.pub, fingerprint1); 
+      const ECDHE_VZ1 = await genPublicEphemeralKey("p384", key_data.p384.pub, fingerprint1);
       const ECDHE_Z1 = await genPrivateEphemeralKey("p384", ECDHE_VZ1.V, key_data.p384.pub, key_data.p384.priv, fingerprint1);
       expect(Array.from(ECDHE_Z1).join(' ') === Array.from(ECDHE_VZ1.Z).join(' ')).to.be.true;
     });
@@ -550,11 +551,18 @@ describe('Elliptic Curve Cryptography', function () {
           this.skip();
       }
       return Promise.all(names.map(async function (name) {
-        const ECDHE_VZ1 = await genPublicEphemeralKey(name,  key_data[name].pub, fingerprint1);
-        const ECDHE_Z1 = await genEllipticPrivateEphemeralKey(name, ECDHE_VZ1.V, key_data[name].priv, key_data[name].pub, fingerprint1);
-        const ECDHE_Z2 = await genWebPrivateEphemeralKey(name, ECDHE_VZ1.V, key_data[name].pub, key_data[name].priv, fingerprint1);
-        expect(Array.from(ECDHE_Z1).join(' ') === Array.from(ECDHE_VZ1.Z).join(' ')).to.be.true;
-        expect(Array.from(ECDHE_Z1).join(' ') === Array.from(ECDHE_Z2).join(' ')).to.be.true;
+        const curve = new elliptic_curves.Curve(name);
+        const key = window.crypto.subtle.generateKey({
+          name: "ECDSA",
+          namedCurve: curve.web.web
+        }, false, ["sign", "verify"]);
+        key.then(async () => {
+          const ECDHE_VZ1 = await genPublicEphemeralKey(name,  key_data[name].pub, fingerprint1);
+          const ECDHE_Z1 = await genEllipticPrivateEphemeralKey(name, ECDHE_VZ1.V, key_data[name].priv, key_data[name].pub, fingerprint1);
+          const ECDHE_Z2 = await genWebPrivateEphemeralKey(name, ECDHE_VZ1.V,  key_data[name].priv, key_data[name].pub, fingerprint1);
+          expect(Array.from(ECDHE_Z1).join(' ') === Array.from(ECDHE_VZ1.Z).join(' ')).to.be.true;
+          expect(Array.from(ECDHE_Z1).join(' ') === Array.from(ECDHE_Z2).join(' ')).to.be.true;
+        });
       }));
     });
   });

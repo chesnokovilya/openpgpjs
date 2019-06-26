@@ -215,8 +215,8 @@ async function decrypt(oid, cipher_algo, hash_algo, V, C, Q, d, fingerprint) {
  * @async
  */
 async function webPrivateEphemeralKey(curve, V, Q, d) {
-  const recipient = await privateToJwk(curve.payloadSize, curve.web.web, d, Q);
-  const privateKey = await webCrypto.importKey(
+  const recipient = privateToJwk(curve.payloadSize, curve.web.web, d, Q);
+  let privateKey = webCrypto.importKey(
     "jwk",
     recipient,
     {
@@ -224,10 +224,10 @@ async function webPrivateEphemeralKey(curve, V, Q, d) {
       namedCurve: curve.web.web
     },
     true,
-    ["deriveKey","deriveBits"]
+    ["deriveBits"]
   );
-  const jwk = await rawPublicToJwk(curve.payloadSize, curve.web.web, V);
-  const sender = await webCrypto.importKey(
+  const jwk = rawPublicToJwk(curve.payloadSize, curve.web.web, V);
+  let sender = webCrypto.importKey(
     "jwk",
     jwk,
     {
@@ -237,7 +237,8 @@ async function webPrivateEphemeralKey(curve, V, Q, d) {
     true,
     []
   );
-  const S = await webCrypto.deriveBits(
+  [privateKey, sender] = await Promise.all([privateKey, sender]);
+  let S = webCrypto.deriveBits(
     {
       name: "ECDH",
       namedCurve: curve.web.web,
@@ -246,8 +247,13 @@ async function webPrivateEphemeralKey(curve, V, Q, d) {
     privateKey,
     curve.web.sharedSize
   );
+  let secret = webCrypto.exportKey(
+    "jwk",
+    privateKey
+  );
+  [S, secret] = await Promise.all([S, secret]);
   const sharedKey = new Uint8Array(S);
-  const secretKey = d;
+  const secretKey = util.b64_to_Uint8Array(secret.d, true);
   return {secretKey, sharedKey};
 }
 
@@ -260,21 +266,16 @@ async function webPrivateEphemeralKey(curve, V, Q, d) {
  * @async
  */
 async function webPublicEphemeralKey(curve, Q) {
-  const keyPair = await webCrypto.generateKey(
+  const jwk = rawPublicToJwk(curve.payloadSize, curve.web.web, Q);
+  let keyPair = webCrypto.generateKey(
     {
       name: "ECDH",
       namedCurve: curve.web.web
     },
     true,
-    ["deriveKey","deriveBits"]
+    ["deriveBits"]
   );
-  const p = await webCrypto.exportKey(
-    "jwk",
-    keyPair.publicKey
-  );
-  const publicKey = new Uint8Array(await jwkToRawPublic(p));
-  const jwk = await rawPublicToJwk(curve.payloadSize, curve.web.web, Q);
-  const recipient = await webCrypto.importKey(
+  let recipient = webCrypto.importKey(
     "jwk",
     jwk,
     {
@@ -284,7 +285,8 @@ async function webPublicEphemeralKey(curve, Q) {
     false,
     []
   );
-  const s = await webCrypto.deriveBits(
+  [keyPair, recipient] = await Promise.all([keyPair, recipient]);
+  let s = webCrypto.deriveBits(
     {
       name: "ECDH",
       namedCurve: curve.web.web,
@@ -293,10 +295,25 @@ async function webPublicEphemeralKey(curve, Q) {
     keyPair.privateKey,
     curve.web.sharedSize
   );
+  let p = webCrypto.exportKey(
+    "jwk",
+    keyPair.publicKey
+  );
+  [s, p] = await Promise.all([s, p]);
   const sharedKey = new Uint8Array(s);
+  const publicKey = new Uint8Array(jwkToRawPublic(p));
   return { publicKey, sharedKey};
 }
 
+/**
+ * Generate ECDHE secret from private key and public part of ephemeral key using indutny/elliptic
+ *
+ * @param  {Curve}                  curve        Elliptic curve object
+ * @param  {Uint8Array}             V            Public part of ephemeral key
+ * @param  {Uint8Array}             d            Recipient private key
+ * @returns {Promise<BN>}                        Generated ephemeral secret
+ * @async
+ */
 async function ellipticPrivateEphemeralKey(curve, V, d) {
   V = curve.keyFromPublic(V);
   d = curve.keyFromPrivate(d);
@@ -307,6 +324,14 @@ async function ellipticPrivateEphemeralKey(curve, V, d) {
   return { secretKey, sharedKey };
 }
 
+/**
+ * Generate ECDHE ephemeral key and secret from public key using indutny/elliptic
+ *
+ * @param  {Curve}                  curve        Elliptic curve object
+ * @param  {Uint8Array}             Q                   Recipient public key
+ * @returns {Promise<{V: Uint8Array, S: BN}>}   Returns public part of ephemeral key and generated ephemeral secret
+ * @async
+ */
 async function ellipticPublicEphemeralKey(curve, Q) {
   const v = await curve.genKeyPair();
   Q = curve.keyFromPublic(Q);
@@ -318,10 +343,11 @@ async function ellipticPublicEphemeralKey(curve, Q) {
 }
 
 /**
- * @param  {Curve}                  curve        Elliptic curve object
+ * @param  {Integer}                payloadSize  ec payload size
+ * @param  {String}                 name         curve name
  * @param  {Uint8Array}             publicKey    public key
  */
-async function rawPublicToJwk(payloadSize, name, publicKey) {
+function rawPublicToJwk(payloadSize, name, publicKey) {
   const len = payloadSize;
   const bufX = publicKey.slice(1, len+1);
   const bufY = publicKey.slice(len+1, len*2+1);
@@ -336,13 +362,22 @@ async function rawPublicToJwk(payloadSize, name, publicKey) {
   return jwKey;
 }
 
-async function privateToJwk(payloadSize, name, privateKey, publicKey) {
-  const jwk = await rawPublicToJwk(payloadSize, name, publicKey);
+/**
+ * @param  {Integer}                payloadSize  ec payload size
+ * @param  {String}                 name         curve name
+ * @param  {Uint8Array}             publicKey    public key
+ * @param  {Uint8Array}             privateKey   private key
+ */
+function privateToJwk(payloadSize, name, privateKey, publicKey) {
+  const jwk = rawPublicToJwk(payloadSize, name, publicKey);
   jwk.d = util.Uint8Array_to_b64(privateKey, true);
   return jwk;
 }
 
-async function jwkToRawPublic(jwk) {
+/**
+ * @param  {JsonWebKey}                jwk  key for conversion
+ */
+function jwkToRawPublic(jwk) {
   const bufX = util.b64_to_Uint8Array(jwk.x);
   const bufY = util.b64_to_Uint8Array(jwk.y);
   const publicKey = new Uint8Array(bufX.length + bufY.length + 1);
