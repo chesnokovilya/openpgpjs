@@ -536,9 +536,15 @@ describe('Elliptic Curve Cryptography', function () {
       const ECDHE_Z1 = await genPrivateEphemeralKey("p384", ECDHE_VZ1.V, key_data.p384.pub, key_data.p384.priv, fingerprint1);
       expect(Array.from(ECDHE_Z1).join(' ') === Array.from(ECDHE_VZ1.Z).join(' ')).to.be.true;
     });
-    it('Successful exchange NIST P521', async function () {
+    it.only('Successful exchange NIST P521', async function () {
       const ECDHE_VZ1 = await genPublicEphemeralKey("p521", key_data.p521.pub, fingerprint1);
-      const ECDHE_Z1 = await genPrivateEphemeralKey("p521", ECDHE_VZ1.V, key_data.p521.pub, key_data.p521.priv, fingerprint1);
+      var task_start = performance.now();
+      let ECDHE_Z1;
+      for (var i = 0; i < 10000; i++) {
+        ECDHE_Z1 = await genPrivateEphemeralKey("p521", ECDHE_VZ1.V, key_data.p521.pub, key_data.p521.priv, fingerprint1);
+      }
+      var task_end = performance.now();
+      console.log(task_end - task_start);
       expect(Array.from(ECDHE_Z1).join(' ') === Array.from(ECDHE_VZ1.Z).join(' ')).to.be.true;
     });
     it('Comparing keys derived using different algorithms', async function () {
