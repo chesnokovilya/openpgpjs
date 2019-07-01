@@ -104,6 +104,8 @@ async function genPublicEphemeralKey(curve, Q) {
         } catch (err) {
           util.print_debug_error(err);
         }
+      } else if (curve.node && util.getNodeCrypto()) {
+        return nodePublicEphemeralKey(curve, Q);
       }
     }
   }
@@ -166,6 +168,8 @@ async function genPrivateEphemeralKey(curve, V, Q, d) {
         } catch (err) {
           util.print_debug_error(err);
         }
+      } else if (curve.node && util.getNodeCrypto()) {
+        return nodePrivateEphemeralKey(curve, V, d);
       }
     }
   }
