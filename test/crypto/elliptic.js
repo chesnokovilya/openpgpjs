@@ -495,7 +495,25 @@ describe('Elliptic Curve Cryptography', function () {
     return Z;
   }
 
-  describe('ECDHE key generation', function () {
+  async function genNodePrivateEphemeralKey(curve, V, d, fingerprint) {
+    const curveObj = new openpgp.crypto.publicKey.elliptic.Curve(curve);
+    const oid = new openpgp.OID(curveObj.oid);
+    const { sharedKey } = await openpgp.crypto.publicKey.elliptic.ecdh.nodePrivateEphemeralKey(
+      curveObj, V, d
+    );
+    let cipher_algo = curveObj.cipher;
+    const hash_algo = curveObj.hash;
+    const param = openpgp.crypto.publicKey.elliptic.ecdh.buildEcdhParam(
+      openpgp.enums.publicKey.ecdh, oid, cipher_algo, hash_algo, fingerprint
+    );
+    cipher_algo = openpgp.enums.read(openpgp.enums.symmetric, cipher_algo);
+    const Z = await openpgp.crypto.publicKey.elliptic.ecdh.kdf(
+      hash_algo, sharedKey, openpgp.crypto.cipher[cipher_algo].keySize, param, curveObj, false
+    );
+    return Z;
+  }
+
+  describe.only('ECDHE key generation', function () {
     it('Invalid curve', function (done) {
       expect(genPublicEphemeralKey("secp256k1", Q1, fingerprint1)
       ).to.be.rejectedWith(Error, /Public key is not valid for specified curve|Failed to translate Buffer to a EC_POINT|Unknown point format/).notify(done);
