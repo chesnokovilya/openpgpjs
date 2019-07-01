@@ -513,7 +513,7 @@ describe('Elliptic Curve Cryptography', function () {
     return Z;
   }
 
-  describe.only('ECDHE key generation', function () {
+  describe('ECDHE key generation', function () {
     it('Invalid curve', function (done) {
       expect(genPublicEphemeralKey("secp256k1", Q1, fingerprint1)
       ).to.be.rejectedWith(Error, /Public key is not valid for specified curve|Failed to translate Buffer to a EC_POINT|Unknown point format/).notify(done);
