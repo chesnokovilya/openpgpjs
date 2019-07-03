@@ -192,8 +192,8 @@ describe('Elliptic Curve Cryptography', function () {
     });
     it('Shared secret generation', async function () {
       const curve = new elliptic_curves.Curve('p256');
-      const { sharedKey: shared1 } = await elliptic_curves.ecdh.genPrivateEphemeralKey(curve, signature_data.pub, key_data.p256.priv);
-      const { sharedKey: shared2 } = await elliptic_curves.ecdh.genPrivateEphemeralKey(curve, key_data.p256.pub, signature_data.priv);
+      const { sharedKey: shared1 } = await elliptic_curves.ecdh.genPrivateEphemeralKey(curve, signature_data.pub, key_data.p256.pub, key_data.p256.priv);
+      const { sharedKey: shared2 } = await elliptic_curves.ecdh.genPrivateEphemeralKey(curve, key_data.p256.pub, signature_data.pub, signature_data.priv);
       expect(shared1).to.deep.equal(shared2);
     });
   });
