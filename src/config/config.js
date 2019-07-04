@@ -190,5 +190,9 @@ export default {
    * @memberof module:config
    * @property {Array} known_notations
    */
-  known_notations: ["preferred-email-encoding@pgp.com", "pka-address@gnupg.org"]
+  known_notations: ["preferred-email-encoding@pgp.com", "pka-address@gnupg.org"],
+  /**
+   * Use only constant-time curves, which are: ed25519, nist p256, p384, p521
+   */
+  only_constant_time_curves: false
 };
