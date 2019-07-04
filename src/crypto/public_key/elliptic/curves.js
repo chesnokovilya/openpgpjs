@@ -18,24 +18,26 @@
 /**
  * @fileoverview Wrapper of an instance of an Elliptic Curve
  * @requires bn.js
- * @requires elliptic
  * @requires tweetnacl
  * @requires crypto/public_key/elliptic/key
  * @requires crypto/random
  * @requires enums
  * @requires util
  * @requires type/oid
+ * @requires config
  * @module crypto/public_key/elliptic/curve
  */
 
 import BN from 'bn.js';
-import { ec as EC, eddsa as EdDSA } from 'elliptic';
 import nacl from 'tweetnacl/nacl-fast-light.js';
 import KeyPair from './key';
 import random from '../../random';
 import enums from '../../../enums';
 import util from '../../../util';
 import OID from '../../../type/oid';
+import config from '../../../config';
+
+const indutny_ec = !config.only_constant_time_curves ? require('elliptic') : undefined;
 
 const webCrypto = util.getWebCrypto();
 const nodeCrypto = util.getNodeCrypto();
@@ -154,13 +156,10 @@ function Curve(oid_or_name, params) {
   params = params || curves[this.name];
 
   this.keyType = params.keyType;
-  if (this.name !== 'curve25519' && this.name !== 'ed25519') {
+  if (this.name !== 'curve25519' && this.name !== 'ed25519' && !config.only_constant_time_curves) {
     switch (this.keyType) {
       case enums.publicKey.ecdsa:
-        this.curve = new EC(this.name);
-        break;
-      case enums.publicKey.eddsa:
-        this.curve = new EdDSA(this.name);
+        this.curve = indutny_curve(this.name);
         break;
       default:
         throw new Error('Unknown elliptic key type;');
@@ -299,3 +298,7 @@ async function nodeGenKeyPair(name) {
     priv: ecdh.getPrivateKey().toJSON().data
   };
 }
+
+const indutny_curve = !config.only_constant_time_curves ? function (name) {
+  return new indutny_ec.ec(name);
+} : undefined;
