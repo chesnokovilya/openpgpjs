@@ -32,7 +32,7 @@
 
 import BN from 'bn.js';
 import nacl from 'tweetnacl/nacl-fast-light.js';
-import Curve from './curves';
+import Curve, { jwkToRawPublic, rawPublicToJwk, privateToJwk } from './curves';
 import aes_kw from '../../aes_kw';
 import cipher from '../../cipher';
 import random from '../../random';
@@ -226,7 +226,7 @@ async function decrypt(oid, cipher_algo, hash_algo, V, C, Q, d, fingerprint) {
  * @async
  */
 async function webPrivateEphemeralKey(curve, V, Q, d) {
-  const recipient = privateToJwk(curve.payloadSize, curve.web.web, d, Q);
+  const recipient = privateToJwk(curve.payloadSize, curve.web.web, Q, d);
   let privateKey = webCrypto.importKey(
     "jwk",
     recipient,
@@ -384,54 +384,6 @@ async function nodePublicEphemeralKey(curve, Q) {
   const sharedKey = new Uint8Array(sender.computeSecret(Q));
   const publicKey = new Uint8Array(sender.getPublicKey());
   return { publicKey, sharedKey };
-}
-
-/**
- * @param  {Integer}                payloadSize  ec payload size
- * @param  {String}                 name         curve name
- * @param  {Uint8Array}             publicKey    public key
- * @returns {JsonWebKey}                         public key in jwk format
- */
-function rawPublicToJwk(payloadSize, name, publicKey) {
-  const len = payloadSize;
-  const bufX = publicKey.slice(1, len+1);
-  const bufY = publicKey.slice(len+1, len*2+1);
-  // https://www.rfc-editor.org/rfc/rfc7518.txt
-  const jwKey = {
-    kty: "EC",
-    crv: name,
-    x: util.Uint8Array_to_b64(bufX, true),
-    y: util.Uint8Array_to_b64(bufY, true),
-    ext: true
-  };
-  return jwKey;
-}
-
-/**
- * @param  {Integer}                payloadSize  ec payload size
- * @param  {String}                 name         curve name
- * @param  {Uint8Array}             publicKey    public key
- * @param  {Uint8Array}             privateKey   private key
- * @returns {JsonWebKey}                         private key in jwk format
- */
-function privateToJwk(payloadSize, name, privateKey, publicKey) {
-  const jwk = rawPublicToJwk(payloadSize, name, publicKey);
-  jwk.d = util.Uint8Array_to_b64(privateKey, true);
-  return jwk;
-}
-
-/**
- * @param  {JsonWebKey}                jwk  key for conversion
- * @returns {Uint8Array}                    raw public key
- */
-function jwkToRawPublic(jwk) {
-  const bufX = util.b64_to_Uint8Array(jwk.x);
-  const bufY = util.b64_to_Uint8Array(jwk.y);
-  const publicKey = new Uint8Array(bufX.length + bufY.length + 1);
-  publicKey[0] = 0x04;
-  publicKey.set(bufX, 1);
-  publicKey.set(bufY, bufX.length+1);
-  return publicKey;
 }
 
 export default { encrypt, decrypt, genPublicEphemeralKey, genPrivateEphemeralKey, buildEcdhParam, kdf, webPublicEphemeralKey, webPrivateEphemeralKey, ellipticPublicEphemeralKey, ellipticPrivateEphemeralKey, nodePublicEphemeralKey, nodePrivateEphemeralKey };

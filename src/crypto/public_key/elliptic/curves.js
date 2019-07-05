@@ -258,7 +258,7 @@ function getPreferredHashAlgo(oid) {
 export default Curve;
 
 export {
-  curves, webCurves, nodeCurves, generate, getPreferredHashAlgo, jwkToRawPublic
+  curves, webCurves, nodeCurves, generate, getPreferredHashAlgo, jwkToRawPublic, rawPublicToJwk, privateToJwk
 };
 
 //////////////////////////
@@ -294,6 +294,12 @@ async function nodeGenKeyPair(name) {
 const indutnyCurve = !config.only_constant_time_curves ? function (name) {
   return new indutnyEc.ec(name);
 } : undefined;
+
+//////////////////////////
+//                      //
+//   Helper functions   //
+//                      //
+//////////////////////////
 
 /**
  * @param  {JsonWebKey}                jwk  key for conversion
