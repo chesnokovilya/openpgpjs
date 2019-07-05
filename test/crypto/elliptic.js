@@ -160,19 +160,6 @@ describe('Elliptic Curve Cryptography', function () {
         });
       }));
     });
-    it('Creating KeyPair from data', function (done) {
-      for (const name in key_data) {
-        const pair = key_data[name];
-        const curve = new elliptic_curves.Curve(name);
-        expect(curve).to.exist;
-        const keyPair = curve.keyFromPrivate(pair.priv);
-        expect(keyPair).to.exist;
-        const pub = keyPair.getPublic();
-        expect(pub).to.exist;
-        expect(openpgp.util.Uint8Array_to_hex(pub)).to.equal(openpgp.util.Uint8Array_to_hex(pair.pub));
-      }
-      done();
-    });
     it('Signature verification', function (done) {
       expect(
         elliptic_curves.ecdsa.verify('p256', 8, signature_data.signature, signature_data.message, signature_data.pub, signature_data.hashed)

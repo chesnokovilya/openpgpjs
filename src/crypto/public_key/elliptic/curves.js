@@ -30,14 +30,14 @@
 
 import BN from 'bn.js';
 import nacl from 'tweetnacl/nacl-fast-light.js';
-import KeyPair from './key';
+import KeyPair from './indutnyKey';
 import random from '../../random';
 import enums from '../../../enums';
 import util from '../../../util';
 import OID from '../../../type/oid';
 import config from '../../../config';
 
-const indutny_ec = !config.only_constant_time_curves ? require('elliptic') : undefined;
+const indutnyEc = !config.only_constant_time_curves ? require('elliptic') : undefined;
 
 const webCrypto = util.getWebCrypto();
 const nodeCrypto = util.getNodeCrypto();
@@ -59,7 +59,6 @@ const nodeCurves = nodeCrypto ? {
   brainpoolP384r1: knownCurves.includes('brainpoolP384r1') ? 'brainpoolP384r1' : undefined,
   brainpoolP512r1: knownCurves.includes('brainpoolP512r1') ? 'brainpoolP512r1' : undefined
 } : {};
-
 const curves = {
   p256: {
     oid: [0x06, 0x08, 0x2A, 0x86, 0x48, 0xCE, 0x3D, 0x03, 0x01, 0x07],
@@ -156,15 +155,6 @@ function Curve(oid_or_name, params) {
   params = params || curves[this.name];
 
   this.keyType = params.keyType;
-  if (this.name !== 'curve25519' && this.name !== 'ed25519' && !config.only_constant_time_curves) {
-    switch (this.keyType) {
-      case enums.publicKey.ecdsa:
-        this.curve = indutny_curve(this.name);
-        break;
-      default:
-        throw new Error('Unknown elliptic key type;');
-    }
-  }
 
   this.oid = params.oid;
   this.hash = params.hash;
@@ -172,54 +162,61 @@ function Curve(oid_or_name, params) {
   this.node = params.node && curves[this.name];
   this.web = params.web && curves[this.name];
   this.payloadSize = params.payloadSize;
-}
-
-Curve.prototype.keyFromPrivate = function (priv) { // Not for ed25519
-  return new KeyPair(this, { priv: priv });
-};
-
-Curve.prototype.keyFromPublic = function (pub) {
-  const keyPair = new KeyPair(this, { pub: pub });
-  if (
-    this.keyType === enums.publicKey.ecdsa &&
-    keyPair.keyPair.validate().result !== true
-  ) {
-    throw new Error('Invalid elliptic public key');
+  if (this.web && util.getWebCrypto()) {
+    this.type = 'web';
+  } else if (this.node && util.getNodeCrypto()) {
+    this.type = 'node';
+  } else if (this.name === 'curve25519') {
+    this.type = 'curve25519';
+  } else if (this.name === 'ed25519') {
+    this.type = 'ed25519';
+  } else {
+    this.type = 'elliptic';
   }
-  return keyPair;
-};
+  if (!config.only_constant_time_curves) {
+    this.indutnyCurve = indutnyCurve(this.name);
+  }
+}
 
 Curve.prototype.genKeyPair = async function () {
   let keyPair;
-  if (this.web && util.getWebCrypto()) {
-    // If browser doesn't support a curve, we'll catch it
-    try {
-      keyPair = await webGenKeyPair(this.name);
-    } catch (err) {
-      util.print_debug("Browser did not support signing: " + err.message);
+  switch (this.type) {
+    case 'web': {
+      try {
+        keyPair = await webGenKeyPair(this.name);
+        return {
+          getPublic: () => keyPair.publicKey,
+          getPrivate: () => keyPair.privateKey
+        };
+      } catch (err) {
+        util.print_debug("Browser did not support generating ec key " + err.message);
+        break;
+      }
     }
-  } else if (this.node && util.getNodeCrypto()) {
-    keyPair = await nodeGenKeyPair(this.name);
-  }
-
-  if (!keyPair || !keyPair.priv) {
-    if (this.name === 'curve25519') {
+    case 'node': {
+      keyPair = await nodeGenKeyPair(this.name);
+      return {
+        getPublic: () => keyPair.publicKey,
+        getPrivate: () => keyPair.privateKey
+      };
+      //todo convert to correct return type
+    }
+    case 'curve25519': {
       const privateKey = await random.getRandomBytes(32);
-
       const one = new BN(1);
       const mask = one.ushln(255 - 3).sub(one).ushln(3);
       let secretKey = new BN(privateKey);
       secretKey = secretKey.or(one.ushln(255 - 1));
       secretKey = secretKey.and(mask);
       secretKey = secretKey.toArrayLike(Uint8Array, 'le', 32);
-
-      const keyPair = nacl.box.keyPair.fromSecretKey(secretKey);
+      keyPair = nacl.box.keyPair.fromSecretKey(secretKey);
       const publicKey = util.concatUint8Array([new Uint8Array([0x40]), keyPair.publicKey]);
       return {
         getPublic: () => publicKey,
         getPrivate: () => privateKey
       };
-    } else if (this.name === 'ed25519') {
+    }
+    case 'ed25519': {
       const privateKey = await random.getRandomBytes(32);
       const keyPair = nacl.sign.keyPair.fromSeed(privateKey);
       const publicKey = util.concatUint8Array([new Uint8Array([0x40]), keyPair.publicKey]);
@@ -227,20 +224,19 @@ Curve.prototype.genKeyPair = async function () {
         getPublic: () => publicKey,
         getPrivate: () => privateKey
       };
-    } else {
-      // elliptic fallback
-      const r = await this.curve.genKeyPair({
-        entropy: util.Uint8Array_to_str(await random.getRandomBytes(32))
-      });
-      const compact = this.curve.curve.type === 'edwards' || this.curve.curve.type === 'mont';
-      if (this.keyType === enums.publicKey.eddsa) {
-        keyPair = { secret: r.getSecret() };
-      } else {
-        keyPair = { pub: r.getPublic('array', compact), priv: r.getPrivate().toArray() };
-      }
     }
+    default:
+      break;
   }
-  return new KeyPair(this, keyPair);
+  if (!config.only_constant_time_curves) {
+    //elliptic fallback
+    const r = await this.indutnyCurve.genKeyPair({
+      entropy: util.Uint8Array_to_str(await random.getRandomBytes(32))
+    });
+    const compact = this.indutnyCurve.curve.type === 'edwards' || this.indutnyCurve.curve.type === 'mont';
+    keyPair = { pub: r.getPublic('array', compact), priv: r.getPrivate().toArray() };
+    return new KeyPair(this, keyPair);
+  }
 };
 
 async function generate(curve) {
@@ -262,7 +258,7 @@ function getPreferredHashAlgo(oid) {
 export default Curve;
 
 export {
-  curves, webCurves, nodeCurves, generate, getPreferredHashAlgo
+  curves, webCurves, nodeCurves, generate, getPreferredHashAlgo, jwkToRawPublic
 };
 
 //////////////////////////
@@ -280,11 +276,8 @@ async function webGenKeyPair(name) {
   const publicKey = await webCrypto.exportKey("jwk", webCryptoKey.publicKey);
 
   return {
-    pub: {
-      x: util.b64_to_Uint8Array(publicKey.x, true),
-      y: util.b64_to_Uint8Array(publicKey.y, true)
-    },
-    priv: util.b64_to_Uint8Array(privateKey.d, true)
+    publicKey: jwkToRawPublic(publicKey),
+    privateKey: util.b64_to_Uint8Array(privateKey.d, true)
   };
 }
 
@@ -292,13 +285,63 @@ async function nodeGenKeyPair(name) {
   // Note: ECDSA and ECDH key generation is structurally equivalent
   const ecdh = nodeCrypto.createECDH(nodeCurves[name]);
   await ecdh.generateKeys();
-
   return {
-    pub: ecdh.getPublicKey().toJSON().data,
-    priv: ecdh.getPrivateKey().toJSON().data
+    publicKey: new Uint8Array(ecdh.getPublicKey()),
+    privateKey: new Uint8Array(ecdh.getPrivateKey())
   };
 }
 
-const indutny_curve = !config.only_constant_time_curves ? function (name) {
-  return new indutny_ec.ec(name);
+const indutnyCurve = !config.only_constant_time_curves ? function (name) {
+  return new indutnyEc.ec(name);
 } : undefined;
+
+/**
+ * @param  {JsonWebKey}                jwk  key for conversion
+ *
+ * @returns {Uint8Array}                    raw public key
+ */
+function jwkToRawPublic(jwk) {
+  const bufX = util.b64_to_Uint8Array(jwk.x);
+  const bufY = util.b64_to_Uint8Array(jwk.y);
+  const publicKey = new Uint8Array(bufX.length + bufY.length + 1);
+  publicKey[0] = 0x04;
+  publicKey.set(bufX, 1);
+  publicKey.set(bufY, bufX.length+1);
+  return publicKey;
+}
+
+/**
+ * @param  {Integer}                payloadSize  ec payload size
+ * @param  {String}                 name         curve name
+ * @param  {Uint8Array}             publicKey    public key
+ *
+ * @returns {JsonWebKey}                         public key in jwk format
+ */
+function rawPublicToJwk(payloadSize, name, publicKey) {
+  const len = payloadSize;
+  const bufX = publicKey.slice(1, len+1);
+  const bufY = publicKey.slice(len+1, len*2+1);
+  // https://www.rfc-editor.org/rfc/rfc7518.txt
+  const jwKey = {
+    kty: "EC",
+    crv: name,
+    x: util.Uint8Array_to_b64(bufX, true),
+    y: util.Uint8Array_to_b64(bufY, true),
+    ext: true
+  };
+  return jwKey;
+}
+
+/**
+ * @param  {Integer}                payloadSize  ec payload size
+ * @param  {String}                 name         curve name
+ * @param  {Uint8Array}             publicKey    public key
+ * @param  {Uint8Array}             privateKey   private key
+ *
+ * @returns {JsonWebKey}                         private key in jwk format
+ */
+function privateToJwk(payloadSize, name, publicKey, privateKey) {
+  const jwk = rawPublicToJwk(payloadSize, name, publicKey);
+  jwk.d = util.Uint8Array_to_b64(privateKey, true);
+  return jwk;
+}

@@ -30,6 +30,8 @@ import stream from 'web-stream-tools';
 import enums from '../../../enums';
 import util from '../../../util';
 import Curve, { webCurves } from './curves';
+import KeyPair from './indutnyKey.js';
+import config from '../../../config';
 
 const webCrypto = util.getWebCrypto();
 const nodeCrypto = util.getNodeCrypto();
@@ -47,24 +49,24 @@ const nodeCrypto = util.getNodeCrypto();
  */
 async function sign(oid, hash_algo, message, privateKey, hashed) {
   const curve = new Curve(oid);
-  const key = curve.keyFromPrivate(privateKey);
   let signature;
   if (message && !message.locked) {
     message = await stream.readToEnd(message);
-    if (key.curve.web && util.getWebCrypto()) {
+    if (curve.web && util.getWebCrypto()) {
       // If browser doesn't support a curve, we'll catch it
       try {
         // need to await to make sure browser succeeds
-        const signature = await webSign(key.curve, hash_algo, message, key.keyPair);
+        const signature = await webSign(curve, hash_algo, message, privateKey);
         return signature;
       } catch (err) {
         util.print_debug("Browser did not support signing: " + err.message);
       }
-    } else if (key.curve.node && util.getNodeCrypto()) {
-      signature = await nodeSign(key.curve, hash_algo, message, key.keyPair);
+    } else if (curve.node && util.getNodeCrypto()) {
+      signature = await nodeSign(curve, hash_algo, message, privateKey);
     }
   }
-  if (!signature) {
+  if (!signature && !config.only_constant_time_curves) {
+    const key = new KeyPair(curve, { priv: privateKey });
     signature = key.keyPair.sign(hashed);
   }
   return {
@@ -87,24 +89,27 @@ async function sign(oid, hash_algo, message, privateKey, hashed) {
  */
 async function verify(oid, hash_algo, signature, message, publicKey, hashed) {
   const curve = new Curve(oid);
-  const key = curve.keyFromPublic(publicKey);
   if (message && !message.locked) {
     message = await stream.readToEnd(message);
-    if (key.curve.web && util.getWebCrypto()) {
+    if (curve.web && util.getWebCrypto()) {
       // If browser doesn't support a curve, we'll catch it
       try {
         // need to await to make sure browser succeeds
-        const result = await webVerify(key.curve, hash_algo, signature, message, key.keyPair.getPublic());
+        const result = await webVerify(curve, hash_algo, signature, message, publicKey);
         return result;
       } catch (err) {
         util.print_debug("Browser did not support signing: " + err.message);
       }
-    } else if (key.curve.node && util.getNodeCrypto()) {
-      return nodeVerify(key.curve, hash_algo, signature, message, key.keyPair.getPublic());
+    } else if (curve.node && util.getNodeCrypto()) {
+      return nodeVerify(curve, hash_algo, signature, message, publicKey);
     }
   }
-  const digest = (typeof hash_algo === 'undefined') ? message : hashed;
-  return key.keyPair.verify(digest, signature);
+  if (!config.only_constant_time_curves) {
+    //elliptic fallback
+    const key = new KeyPair(curve, { pub: publicKey });
+    const digest = (typeof hash_algo === 'undefined') ? message : hashed;
+    return key.keyPair.verify(digest, signature);
+  }
 }
 
 export default { sign, verify };
@@ -215,22 +220,22 @@ async function nodeVerify(curve, hash_algo, { r, s }, message, publicKey) {
   verify.write(message);
   verify.end();
 
-  const key = SubjectPublicKeyInfo.encode({
+  /*const key = SubjectPublicKeyInfo.encode({
     algorithm: {
       algorithm: [1, 2, 840, 10045, 2, 1],
       parameters: curve.oid
     },
-    subjectPublicKey: { unused: 0, data: publicKey.encode() }
+    subjectPublicKey: { unused: 0, data: publicKey }
   }, 'pem', {
     label: 'PUBLIC KEY'
-  });
+  });*/
 
   const signature = ECDSASignature.encode({
     r: new BN(r), s: new BN(s)
   }, 'der');
 
   try {
-    return verify.verify(key, signature);
+    return verify.verify(publicKey, signature);
   } catch (err) {
     return false;
   }
