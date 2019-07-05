@@ -29,7 +29,7 @@ import BN from 'bn.js';
 import stream from 'web-stream-tools';
 import enums from '../../../enums';
 import util from '../../../util';
-import Curve, { webCurves } from './curves';
+import Curve, { webCurves, rawPublicToJwk } from './curves';
 import KeyPair from './indutnyKey.js';
 import config from '../../../config';
 
@@ -162,16 +162,10 @@ async function webSign(curve, hash_algo, message, keyPair) {
 
 async function webVerify(curve, hash_algo, { r, s }, message, publicKey) {
   const len = curve.payloadSize;
+  const jwk = rawPublicToJwk(curve.payloadSize, webCurves[curve.name], publicKey);
   const key = await webCrypto.importKey(
     "jwk",
-    {
-      "kty": "EC",
-      "crv": webCurves[curve.name],
-      "x": util.Uint8Array_to_b64(new Uint8Array(publicKey.getX().toArray('be', len)), true),
-      "y": util.Uint8Array_to_b64(new Uint8Array(publicKey.getY().toArray('be', len)), true),
-      "use": "sig",
-      "kid": "ECDSA Public Key"
-    },
+    jwk,
     {
       "name": "ECDSA",
       "namedCurve": webCurves[curve.name],
@@ -220,22 +214,22 @@ async function nodeVerify(curve, hash_algo, { r, s }, message, publicKey) {
   verify.write(message);
   verify.end();
 
-  /*const key = SubjectPublicKeyInfo.encode({
+  const key = SubjectPublicKeyInfo.encode({
     algorithm: {
       algorithm: [1, 2, 840, 10045, 2, 1],
       parameters: curve.oid
     },
-    subjectPublicKey: { unused: 0, data: publicKey }
+    subjectPublicKey: { unused: 0, data: toHex(publicKey) }
   }, 'pem', {
     label: 'PUBLIC KEY'
-  });*/
+  });
 
   const signature = ECDSASignature.encode({
     r: new BN(r), s: new BN(s)
   }, 'der');
 
   try {
-    return verify.verify(publicKey, signature);
+    return verify.verify(key, signature);
   } catch (err) {
     return false;
   }
@@ -281,3 +275,20 @@ const SubjectPublicKeyInfo = nodeCrypto ?
       this.key('subjectPublicKey').bitstr()
     );
   }) : undefined;
+
+function toHex(msg) {
+  let res = '';
+  for(let i = 0; i < msg.length; i++) {
+    res += zero2(msg[i].toString(16));
+  }
+  return res;
+}
+
+function zero2(word) {
+  if(word.length === 1) {
+    return '0' + word;
+  }
+  else {
+    return word;
+  }
+}
