@@ -16,10 +16,10 @@
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 /**
- * @fileoverview Wrapper for a KeyPair of an Elliptic Curve
+ * @fileoverview Wrapper for a KeyPair of an curve from indutny/elliptic library
  * @requires enums
  * @requires asn1.js
- * @module crypto/public_key/elliptic/key
+ * @module crypto/public_key/elliptic/indutnyKey
  */
 
 import enums from '../../../enums';
@@ -30,14 +30,20 @@ import enums from '../../../enums';
 function KeyPair(curve, options) {
   this.curve = curve;
   if (this.curve.name !== 'ed25519') {
-    this.keyType = curve.curve.type === 'edwards' ? enums.publicKey.eddsa : enums.publicKey.ecdsa;
-    this.keyPair = this.curve.curve.keyPair(options);
+    this.keyType = enums.publicKey.ecdsa;
+    this.keyPair = this.curve.indutnyCurve.keyPair(options);
+  }
+  if (
+    this.keyType === enums.publicKey.ecdsa &&
+    this.keyPair.validate().result !== true
+  ) {
+    throw new Error('Invalid elliptic public key');
   }
 }
 
 KeyPair.prototype.getPublic = function () {
-  const compact = this.curve.curve.curve.type === 'edwards' ||
-        this.curve.curve.curve.type === 'mont';
+  const compact = this.curve.indutnyCurve.curve.type === 'edwards' ||
+        this.curve.indutnyCurve.curve.type === 'mont';
   return this.keyPair.getPublic('array', compact);
 };
 

@@ -40,6 +40,8 @@ import hash from '../../hash';
 import type_kdf_params from '../../../type/kdf_params';
 import enums from '../../../enums';
 import util from '../../../util';
+import KeyPair from './indutnyKey.js';
+import config from '../../../config';
 
 const webCrypto = util.getWebCrypto();
 const nodeCrypto = util.getNodeCrypto();
@@ -112,7 +114,9 @@ async function genPublicEphemeralKey(curve, Q) {
   if (curve.node && nodeCrypto) {
     return nodePublicEphemeralKey(curve, Q);
   }
-  return ellipticPublicEphemeralKey(curve, Q);
+  if (!config.only_constant_time_curves) {
+    return ellipticPublicEphemeralKey(curve, Q);
+  }
 }
 
 /**
@@ -174,7 +178,9 @@ async function genPrivateEphemeralKey(curve, V, Q, d) {
   if (curve.node && nodeCrypto) {
     return nodePrivateEphemeralKey(curve, V, d);
   }
-  return ellipticPrivateEphemeralKey(curve, V, d);
+  if (!config.only_constant_time_curves) {
+    return ellipticPrivateEphemeralKey(curve, V, d);
+  }
 }
 
 /**
@@ -320,11 +326,11 @@ async function webPublicEphemeralKey(curve, Q) {
  * @async
  */
 async function ellipticPrivateEphemeralKey(curve, V, d) {
-  V = curve.keyFromPublic(V);
-  d = curve.keyFromPrivate(d);
+  V = new KeyPair(curve, { pub: V });
+  d = new KeyPair(curve, { priv: d });
   const secretKey = new Uint8Array(d.getPrivate());
   const S = d.keyPair.derive(V.keyPair.getPublic());
-  const len = curve.curve.curve.p.byteLength();
+  const len = curve.indutnyCurve.curve.p.byteLength();
   const sharedKey = S.toArrayLike(Uint8Array, 'be', len);
   return { secretKey, sharedKey };
 }
@@ -339,10 +345,10 @@ async function ellipticPrivateEphemeralKey(curve, V, d) {
  */
 async function ellipticPublicEphemeralKey(curve, Q) {
   const v = await curve.genKeyPair();
-  Q = curve.keyFromPublic(Q);
+  Q = new KeyPair(curve, { pub: Q });
   const publicKey = new Uint8Array(v.getPublic());
   const S = v.keyPair.derive(Q.keyPair.getPublic());
-  const len = curve.curve.curve.p.byteLength();
+  const len = curve.indutnyCurve.curve.p.byteLength();
   const sharedKey = S.toArrayLike(Uint8Array, 'be', len);
   return { publicKey, sharedKey };
 }
