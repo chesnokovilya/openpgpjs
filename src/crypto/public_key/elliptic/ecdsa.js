@@ -29,7 +29,7 @@ import BN from 'bn.js';
 import stream from 'web-stream-tools';
 import enums from '../../../enums';
 import util from '../../../util';
-import Curve, { webCurves, rawPublicToJwk } from './curves';
+import Curve, { webCurves, privateToJwk, rawPublicToJwk } from './curves';
 import KeyPair from './indutnyKey.js';
 import config from '../../../config';
 
@@ -41,28 +41,33 @@ const nodeCrypto = util.getNodeCrypto();
  * @param  {module:type/oid}   oid          Elliptic curve object identifier
  * @param  {module:enums.hash} hash_algo    Hash algorithm used to sign
  * @param  {Uint8Array}        message      Message to sign
+ * @param  {Uint8Array}        publicKey    Public key
  * @param  {Uint8Array}        privateKey   Private key used to sign the message
  * @param  {Uint8Array}        hashed       The hashed message
  * @returns {{r: Uint8Array,
  *            s: Uint8Array}}               Signature of the message
  * @async
  */
-async function sign(oid, hash_algo, message, privateKey, hashed) {
+async function sign(oid, hash_algo, message, publicKey, privateKey, hashed) {
   const curve = new Curve(oid);
   let signature;
   if (message && !message.locked) {
     message = await stream.readToEnd(message);
+    const keyPair = {
+      getPublic: () => publicKey,
+      getPrivate: () => privateKey
+    };
     if (curve.web && util.getWebCrypto()) {
       // If browser doesn't support a curve, we'll catch it
       try {
         // need to await to make sure browser succeeds
-        const signature = await webSign(curve, hash_algo, message, privateKey);
+        const signature = await webSign(curve, hash_algo, message, keyPair);
         return signature;
       } catch (err) {
         util.print_debug("Browser did not support signing: " + err.message);
       }
     } else if (curve.node && util.getNodeCrypto()) {
-      signature = await nodeSign(curve, hash_algo, message, privateKey);
+      signature = await nodeSign(curve, hash_algo, message, keyPair);
     }
   }
   if (!signature && !config.only_constant_time_curves) {
@@ -124,17 +129,10 @@ export default { sign, verify };
 
 async function webSign(curve, hash_algo, message, keyPair) {
   const len = curve.payloadSize;
+  const jwk = privateToJwk(curve.payloadSize, webCurves[curve.name], keyPair.getPublic(), keyPair.getPrivate());
   const key = await webCrypto.importKey(
     "jwk",
-    {
-      "kty": "EC",
-      "crv": webCurves[curve.name],
-      "x": util.Uint8Array_to_b64(new Uint8Array(keyPair.getPublic().getX().toArray('be', len)), true),
-      "y": util.Uint8Array_to_b64(new Uint8Array(keyPair.getPublic().getY().toArray('be', len)), true),
-      "d": util.Uint8Array_to_b64(new Uint8Array(keyPair.getPrivate().toArray('be', len)), true),
-      "use": "sig",
-      "kid": "ECDSA Private Key"
-    },
+    jwk,
     {
       "name": "ECDSA",
       "namedCurve": webCurves[curve.name],
@@ -196,12 +194,11 @@ async function nodeSign(curve, hash_algo, message, keyPair) {
   const sign = nodeCrypto.createSign(enums.read(enums.hash, hash_algo));
   sign.write(message);
   sign.end();
-
   const key = ECPrivateKey.encode({
     version: 1,
     parameters: curve.oid,
-    privateKey: keyPair.getPrivate().toArray(),
-    publicKey: { unused: 0, data: keyPair.getPublic().encode() }
+    privateKey: toArray(keyPair.getPrivate(), 'hex'),
+    publicKey: { unused: 0, data: toArray(keyPair.getPublic()) }
   }, 'pem', {
     label: 'EC PRIVATE KEY'
   });
@@ -277,8 +274,8 @@ const SubjectPublicKeyInfo = nodeCrypto ?
     );
   }) : undefined;
 
-
-//from minimalistic-crypto-utils https://github.com/indutny/minimalistic-crypto-utils
+// Originally written by https://github.com/indutny
+// from minimalistic-crypto-utils https://github.com/indutny/minimalistic-crypto-utils
 function toArray(msg, enc) {
   if (Array.isArray(msg)) return msg.slice();
   if (!msg) return [];

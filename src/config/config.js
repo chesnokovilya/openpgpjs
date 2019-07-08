@@ -194,5 +194,5 @@ export default {
   /**
    * Use only constant-time curves, which are: ed25519, nist p256, p384, p521
    */
-  only_constant_time_curves: false
+  only_constant_time_curves: true
 };
