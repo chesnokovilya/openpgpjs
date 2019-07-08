@@ -219,10 +219,11 @@ async function nodeVerify(curve, hash_algo, { r, s }, message, publicKey) {
       algorithm: [1, 2, 840, 10045, 2, 1],
       parameters: curve.oid
     },
-    subjectPublicKey: { unused: 0, data: toHex(publicKey) }
+    subjectPublicKey: { unused: 0, data: toArray(publicKey) }
   }, 'pem', {
     label: 'PUBLIC KEY'
   });
+
 
   const signature = ECDSASignature.encode({
     r: new BN(r), s: new BN(s)
@@ -276,19 +277,28 @@ const SubjectPublicKeyInfo = nodeCrypto ?
     );
   }) : undefined;
 
-function toHex(msg) {
-  let res = '';
-  for(let i = 0; i < msg.length; i++) {
-    res += zero2(msg[i].toString(16));
+
+//from minimalistic-crypto-utils https://github.com/indutny/minimalistic-crypto-utils
+function toArray(msg, enc) {
+  if (Array.isArray(msg)) return msg.slice();
+  if (!msg) return [];
+  const res = [];
+  if (typeof msg !== 'string') {
+    for (let i = 0; i < msg.length; i++) res[i] = msg[i] | 0;
+    return res;
+  }
+  if (enc === 'hex') {
+    msg = msg.replace(/[^a-z0-9]+/ig, '');
+    if (msg.length % 2 !== 0) msg = '0' + msg;
+    for (let i = 0; i < msg.length; i += 2) res.push(parseInt(msg[i] + msg[i + 1], 16));
+  } else {
+    for (let i = 0; i < msg.length; i++) {
+      const c = msg.charCodeAt(i);
+      const hi = c >> 8;
+      const lo = c & 0xff;
+      if (hi) res.push(hi, lo);
+      else res.push(lo);
+    }
   }
   return res;
-}
-
-function zero2(word) {
-  if(word.length === 1) {
-    return '0' + word;
-  }
-  else {
-    return word;
-  }
 }
