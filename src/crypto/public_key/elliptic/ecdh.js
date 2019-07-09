@@ -41,7 +41,7 @@ import type_kdf_params from '../../../type/kdf_params';
 import enums from '../../../enums';
 import util from '../../../util';
 
-const useIndutnyElliptic = require('./build').default;
+const useIndutnyElliptic = require('./build.env').default;
 const KeyPair = useIndutnyElliptic ? require('./indutnyKey') : undefined;
 
 const webCrypto = util.getWebCrypto();
