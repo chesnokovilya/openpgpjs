@@ -171,7 +171,7 @@ describe('Elliptic Curve Cryptography', function () {
       ).to.eventually.be.false.notify(done);
     });
     it('Signature generation', function () {
-      return elliptic_curves.ecdsa.sign('p256', 8, signature_data.message, key_data.p256.priv, signature_data.hashed).then(async signature => {
+      return elliptic_curves.ecdsa.sign('p256', 8, signature_data.message, key_data.p256.pub, key_data.p256.priv, signature_data.hashed).then(async signature => {
         await expect(
           elliptic_curves.ecdsa.verify('p256', 8, signature, signature_data.message, key_data.p256.pub, signature_data.hashed)
         ).to.eventually.be.true;
@@ -290,7 +290,7 @@ describe('Elliptic Curve Cryptography', function () {
         const keyPrivate = new Uint8Array(keyPair.getPrivate());
         const oid = curve.oid;
         const message = p384_message;
-        return elliptic_curves.ecdsa.sign(oid, 10, message, keyPrivate, await openpgp.crypto.hash.digest(10, message)).then(async signature => {
+        return elliptic_curves.ecdsa.sign(oid, 10, message, keyPublic, keyPrivate, await openpgp.crypto.hash.digest(10, message)).then(async signature => {
           await expect(elliptic_curves.ecdsa.verify(oid, 10, signature, message, keyPublic, await openpgp.crypto.hash.digest(10, message)))
             .to.eventually.be.true;
         });
@@ -554,7 +554,7 @@ describe('Elliptic Curve Cryptography', function () {
     });
     it('Comparing keys derived using nodeCrypto and elliptic', async function () {
       const names = ["p256", "p384", "p521"];
-      if (!openpgp.util.getNodeCrypto()) {
+      if (!openpgp.util.getNodeCrypto() || openpgp.config.only_constant_time_curves) {
         this.skip();
       }
       return Promise.all(names.map(async function (name) {
