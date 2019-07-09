@@ -31,7 +31,7 @@ import enums from '../../../enums';
 import util from '../../../util';
 import Curve, { webCurves, privateToJwk, rawPublicToJwk } from './curves';
 
-const useIndutnyElliptic = require('./build.config').default;
+const useIndutnyElliptic = require('./build.env').default;
 const KeyPair = useIndutnyElliptic ? require('./indutnyKey') : undefined;
 
 const webCrypto = util.getWebCrypto();

@@ -35,7 +35,7 @@ import enums from '../../../enums';
 import util from '../../../util';
 import OID from '../../../type/oid';
 
-const useIndutnyElliptic = require('./build').default;
+const useIndutnyElliptic = require('./build.env').default;
 const indutnyEc = useIndutnyElliptic ? require('elliptic') : undefined;
 const KeyPair = useIndutnyElliptic ? require('./indutnyKey') : undefined;
 
