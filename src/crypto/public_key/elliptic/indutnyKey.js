@@ -28,6 +28,9 @@ import enums from '../../../enums';
  * @constructor
  */
 function KeyPair(curve, options) {
+  if (!curve.indutnyCurve) {
+    throw(new Error('This curve is supported only in the full build of OpenPGP.js'));
+  }
   this.curve = curve;
   if (this.curve.name !== 'ed25519') {
     this.keyType = enums.publicKey.ecdsa;

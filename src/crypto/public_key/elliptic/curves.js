@@ -30,14 +30,14 @@
 
 import BN from 'bn.js';
 import nacl from 'tweetnacl/nacl-fast-light.js';
-import KeyPair from './indutnyKey';
 import random from '../../random';
 import enums from '../../../enums';
 import util from '../../../util';
 import OID from '../../../type/oid';
-import config from '../../../config';
 
-const indutnyEc = !config.only_constant_time_curves ? require('elliptic') : undefined;
+const useIndutnyElliptic = require('./build').default;
+const indutnyEc = useIndutnyElliptic ? require('elliptic') : undefined;
+const KeyPair = useIndutnyElliptic ? require('./indutnyKey') : undefined;
 
 const webCrypto = util.getWebCrypto();
 const nodeCrypto = util.getNodeCrypto();
@@ -170,10 +170,8 @@ function Curve(oid_or_name, params) {
     this.type = 'curve25519';
   } else if (this.name === 'ed25519') {
     this.type = 'ed25519';
-  } else {
-    this.type = 'elliptic';
   }
-  if (!config.only_constant_time_curves) {
+  if (useIndutnyElliptic) {
     this.indutnyCurve = indutnyCurve(this.name);
   }
 }
@@ -199,7 +197,6 @@ Curve.prototype.genKeyPair = async function () {
         getPublic: () => keyPair.publicKey,
         getPrivate: () => keyPair.privateKey
       };
-      //todo convert to correct return type
     }
     case 'curve25519': {
       const privateKey = await random.getRandomBytes(32);
@@ -228,7 +225,7 @@ Curve.prototype.genKeyPair = async function () {
     default:
       break;
   }
-  if (!config.only_constant_time_curves) {
+  if (useIndutnyElliptic) {
     //elliptic fallback
     const r = await this.indutnyCurve.genKeyPair({
       entropy: util.Uint8Array_to_str(await random.getRandomBytes(32))
@@ -291,7 +288,7 @@ async function nodeGenKeyPair(name) {
   };
 }
 
-const indutnyCurve = !config.only_constant_time_curves ? function (name) {
+const indutnyCurve = useIndutnyElliptic ? function (name) {
   return new indutnyEc.ec(name);
 } : undefined;
 

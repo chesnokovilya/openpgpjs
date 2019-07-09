@@ -40,8 +40,9 @@ import hash from '../../hash';
 import type_kdf_params from '../../../type/kdf_params';
 import enums from '../../../enums';
 import util from '../../../util';
-import KeyPair from './indutnyKey.js';
-import config from '../../../config';
+
+const useIndutnyElliptic = require('./build').default;
+const KeyPair = useIndutnyElliptic ? require('./indutnyKey') : undefined;
 
 const webCrypto = util.getWebCrypto();
 const nodeCrypto = util.getNodeCrypto();
@@ -91,7 +92,7 @@ async function kdf(hash_algo, X, length, param, stripLeading=false, stripTrailin
  * @async
  */
 async function genPublicEphemeralKey(curve, Q) {
-  switch (curve.name) {
+  switch (curve.type) {
     case 'curve25519': {
       const d = await random.getRandomBytes(32);
       const { secretKey, sharedKey } = await genPrivateEphemeralKey(curve, Q, null, d);
@@ -99,9 +100,7 @@ async function genPublicEphemeralKey(curve, Q) {
       publicKey = util.concatUint8Array([new Uint8Array([0x40]), publicKey]);
       return { publicKey, sharedKey }; // Note: sharedKey is little-endian here, unlike below
     }
-    case 'p256':
-    case 'p384':
-    case 'p521': {
+    case 'web': {
       if (curve.web && util.getWebCrypto()) {
         try {
           return await webPublicEphemeralKey(curve, Q);
@@ -109,12 +108,13 @@ async function genPublicEphemeralKey(curve, Q) {
           util.print_debug_error(err);
         }
       }
+      break;
+    }
+    case 'node': {
+      return nodePublicEphemeralKey(curve, Q);
     }
   }
-  if (curve.node && nodeCrypto) {
-    return nodePublicEphemeralKey(curve, Q);
-  }
-  if (!config.only_constant_time_curves) {
+  if (useIndutnyElliptic) {
     return ellipticPublicEphemeralKey(curve, Q);
   }
 }
@@ -152,7 +152,7 @@ async function encrypt(oid, cipher_algo, hash_algo, m, Q, fingerprint) {
  * @async
  */
 async function genPrivateEphemeralKey(curve, V, Q, d) {
-  switch (curve.name) {
+  switch (curve.type) {
     case 'curve25519': {
       const one = new BN(1);
       const mask = one.ushln(255 - 3).sub(one).ushln(3);
@@ -163,9 +163,7 @@ async function genPrivateEphemeralKey(curve, V, Q, d) {
       const sharedKey = nacl.scalarMult(secretKey, V.subarray(1));
       return { secretKey, sharedKey }; // Note: sharedKey is little-endian here, unlike below
     }
-    case 'p256':
-    case 'p384':
-    case 'p521': {
+    case 'web': {
       if (curve.web && util.getWebCrypto()) {
         try {
           return await webPrivateEphemeralKey(curve, V, Q, d);
@@ -173,14 +171,16 @@ async function genPrivateEphemeralKey(curve, V, Q, d) {
           util.print_debug_error(err);
         }
       }
+      break;
+    }
+    case 'node': {
+      return nodePrivateEphemeralKey(curve, V, d);
     }
   }
-  if (curve.node && nodeCrypto) {
-    return nodePrivateEphemeralKey(curve, V, d);
-  }
-  if (!config.only_constant_time_curves) {
+  if (useIndutnyElliptic) {
     return ellipticPrivateEphemeralKey(curve, V, d);
   }
+  throw(new Error('This curve is only supported in the full build of OpenPGP.js'));
 }
 
 /**
