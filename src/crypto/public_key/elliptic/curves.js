@@ -230,9 +230,7 @@ Curve.prototype.genKeyPair = async function () {
     const r = await this.indutnyCurve.genKeyPair({
       entropy: util.Uint8Array_to_str(await random.getRandomBytes(32))
     });
-    const compact = this.indutnyCurve.curve.type === 'edwards' || this.indutnyCurve.curve.type === 'mont';
-    keyPair = { pub: r.getPublic('array', compact), priv: r.getPrivate().toArray() };
-    return new KeyPair(this, keyPair);
+    return new KeyPair.default(this, { priv: r.getPrivate().toArray() });
   }
 };
 
