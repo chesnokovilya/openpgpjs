@@ -132,7 +132,7 @@ module.exports = function(grunt) {
           to: "openpgp.min.js"
         }]
       },
-      lightweight: {
+      lightweight_build: {
         src: [
           'src/crypto/public_key/elliptic/curves.js',
           'src/crypto/public_key/elliptic/build.env.js'
@@ -146,6 +146,23 @@ module.exports = function(grunt) {
           {
             from: "USE_INDUTNY_ELLIPTIC = true",
             to: "USE_INDUTNY_ELLIPTIC = false"
+          }
+        ]
+      },
+      full_build: {
+        src: [
+          'src/crypto/public_key/elliptic/curves.js',
+          'src/crypto/public_key/elliptic/build.env.js'
+        ],
+        overwrite: true,
+        replacements: [
+          {
+            from: "const indutnyEc = undefined;",
+            to: "const indutnyEc = require('elliptic');"
+          },
+          {
+            from: "USE_INDUTNY_ELLIPTIC = false",
+            to: "USE_INDUTNY_ELLIPTIC = true"
           }
         ]
       }
@@ -335,7 +352,8 @@ module.exports = function(grunt) {
   grunt.registerTask('build', ['browserify:openpgp', 'browserify:worker', 'version', 'terser', 'header', 'replace_min']);
   grunt.registerTask('documentation', ['jsdoc']);
   grunt.registerTask('default', ['build']);
-  grunt.registerTask('lightweight', ['replace:lightweight', 'build']);
+  grunt.registerTask('lightweight-build', ['replace:lightweight_build']);
+  grunt.registerTask('full-build', ['replace:full_build', 'build']);
   // Test/Dev tasks
   grunt.registerTask('test', ['eslint', 'mochaTest']);
   grunt.registerTask('coverage', ['mocha_istanbul:coverage']);
