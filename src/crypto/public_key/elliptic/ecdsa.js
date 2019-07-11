@@ -32,7 +32,7 @@ import util from '../../../util';
 import Curve, { webCurves, privateToJwk, rawPublicToJwk } from './curves';
 
 const useIndutnyElliptic = require('./build.env').default;
-const KeyPair = useIndutnyElliptic ? require('./indutnyKey') : undefined;
+const KeyPair = require('./indutnyKey').default;
 
 const webCrypto = util.getWebCrypto();
 const nodeCrypto = util.getNodeCrypto();
@@ -72,7 +72,7 @@ async function sign(oid, hash_algo, message, publicKey, privateKey, hashed) {
     }
   }
   if (!signature && useIndutnyElliptic) {
-    const key = new KeyPair.default(curve, { priv: privateKey });
+    const key = new KeyPair(curve, { priv: privateKey });
     signature = key.keyPair.sign(hashed);
   } else if(signature && !useIndutnyElliptic) {
     throw(new Error('This curve is supported only in the full build of OpenPGP.js'));
@@ -114,7 +114,7 @@ async function verify(oid, hash_algo, signature, message, publicKey, hashed) {
   }
   if (useIndutnyElliptic) {
     //elliptic fallback
-    const key = new KeyPair.default(curve, { pub: publicKey });
+    const key = new KeyPair(curve, { pub: publicKey });
     const digest = (typeof hash_algo === 'undefined') ? message : hashed;
     return key.keyPair.verify(digest, signature);
   }

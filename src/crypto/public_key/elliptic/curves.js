@@ -36,8 +36,8 @@ import util from '../../../util';
 import OID from '../../../type/oid';
 
 const useIndutnyElliptic = require('./build.env').default;
-const indutnyEc = useIndutnyElliptic ? require('elliptic') : undefined;
-const KeyPair = useIndutnyElliptic ? require('./indutnyKey') : undefined;
+const indutnyEc = require('elliptic');
+const KeyPair = require('./indutnyKey').default;
 
 const webCrypto = util.getWebCrypto();
 const nodeCrypto = util.getNodeCrypto();
@@ -230,7 +230,7 @@ Curve.prototype.genKeyPair = async function () {
     const r = await this.indutnyCurve.genKeyPair({
       entropy: util.Uint8Array_to_str(await random.getRandomBytes(32))
     });
-    return new KeyPair.default(this, { priv: r.getPrivate().toArray() });
+    return new KeyPair(this, { priv: r.getPrivate().toArray() });
   }
 };
 
