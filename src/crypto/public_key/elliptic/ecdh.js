@@ -42,7 +42,7 @@ import enums from '../../../enums';
 import util from '../../../util';
 
 const useIndutnyElliptic = require('./build.env').default;
-const KeyPair = useIndutnyElliptic ? require('./indutnyKey') : undefined;
+const KeyPair = require('./indutnyKey').default;
 
 const webCrypto = util.getWebCrypto();
 const nodeCrypto = util.getNodeCrypto();
@@ -326,8 +326,8 @@ async function webPublicEphemeralKey(curve, Q) {
  * @async
  */
 async function ellipticPrivateEphemeralKey(curve, V, d) {
-  V = new KeyPair.default(curve, { pub: V });
-  d = new KeyPair.default(curve, { priv: d });
+  V = new KeyPair(curve, { pub: V });
+  d = new KeyPair(curve, { priv: d });
   const secretKey = new Uint8Array(d.getPrivate());
   const S = d.keyPair.derive(V.keyPair.getPublic());
   const len = curve.indutnyCurve.curve.p.byteLength();
@@ -345,7 +345,7 @@ async function ellipticPrivateEphemeralKey(curve, V, d) {
  */
 async function ellipticPublicEphemeralKey(curve, Q) {
   const v = await curve.genKeyPair();
-  Q = new KeyPair.default(curve, { pub: Q });
+  Q = new KeyPair(curve, { pub: Q });
   const publicKey = new Uint8Array(v.getPublic());
   const S = v.keyPair.derive(Q.keyPair.getPublic());
   const len = curve.indutnyCurve.curve.p.byteLength();
