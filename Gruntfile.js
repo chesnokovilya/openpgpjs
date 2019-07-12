@@ -15,6 +15,7 @@ module.exports = function(grunt) {
   // Project configuration.
   const dev = !!grunt.option('dev');
   const compat = !!grunt.option('compat');
+  let lightweight = !!grunt.option('lightweight');
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
     browserify: {
@@ -140,7 +141,7 @@ module.exports = function(grunt) {
           'src/crypto/public_key/elliptic/build.env.js'
         ],
         overwrite: true,
-        replacements: [
+        replacements: lightweight ? [
           {
             from: "require('elliptic')",
             to: "undefined"
@@ -149,7 +150,7 @@ module.exports = function(grunt) {
             from: "USE_INDUTNY_ELLIPTIC = true",
             to: "USE_INDUTNY_ELLIPTIC = false"
           }
-        ]
+        ] : []
       },
       full_build: {
         src: [
@@ -351,11 +352,10 @@ module.exports = function(grunt) {
   // Build tasks
   grunt.registerTask('version', ['replace:openpgp']);
   grunt.registerTask('replace_min', ['replace:openpgp_min', 'replace:worker_min']);
-  grunt.registerTask('build', ['browserify:openpgp', 'browserify:worker', 'version', 'terser', 'header', 'replace_min']);
+  grunt.registerTask('build', ['replace:lightweight_build', 'browserify:openpgp', 'browserify:worker', 'version', 'terser', 'header', 'replace_min', 'replace:full_build']);
   grunt.registerTask('documentation', ['jsdoc']);
   grunt.registerTask('default', ['build']);
-  grunt.registerTask('lightweight-build', ['replace:lightweight_build']);
-  grunt.registerTask('full-build', ['replace:full_build', 'build']);
+  grunt.registerTask('full-build', ['replace:full_build']);
   // Test/Dev tasks
   grunt.registerTask('test', ['eslint', 'mochaTest']);
   grunt.registerTask('coverage', ['mocha_istanbul:coverage']);
