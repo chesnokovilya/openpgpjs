@@ -34,10 +34,10 @@ import random from '../../random';
 import enums from '../../../enums';
 import util from '../../../util';
 import OID from '../../../type/oid';
+import KeyPair from './indutnyKey';
 
-const useIndutnyElliptic = require('./build.env').default;
 const indutnyEc = require('elliptic');
-const KeyPair = require('./indutnyKey').default;
+//const KeyPair = require('./indutnyKey').default;
 
 const webCrypto = util.getWebCrypto();
 const nodeCrypto = util.getNodeCrypto();
@@ -171,7 +171,7 @@ function Curve(oid_or_name, params) {
   } else if (this.name === 'ed25519') {
     this.type = 'ed25519';
   }
-  if (useIndutnyElliptic) {
+  if (util.getFullBuild()) {
     this.indutnyCurve = indutnyCurve(this.name);
   }
 }
@@ -225,7 +225,7 @@ Curve.prototype.genKeyPair = async function () {
     default:
       break;
   }
-  if (useIndutnyElliptic) {
+  if (util.getFullBuild()) {
     //elliptic fallback
     const r = await this.indutnyCurve.genKeyPair({
       entropy: util.Uint8Array_to_str(await random.getRandomBytes(32))
@@ -286,7 +286,7 @@ async function nodeGenKeyPair(name) {
   };
 }
 
-const indutnyCurve = useIndutnyElliptic ? function (name) {
+const indutnyCurve = util.getFullBuild() ? function (name) {
   return new indutnyEc.ec(name);
 } : undefined;
 

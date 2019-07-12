@@ -9,6 +9,12 @@ const input = require('./testInputs.js');
 const expect = chai.expect;
 
 describe('Brainpool Cryptography', function () {
+  if (!openpgp.util.getNodeCrypto() && !openpgp.util.getFullBuild()) {
+    before(function() {
+      this.skip();
+    });
+  }
+  const elliptic_curves = openpgp.crypto.publicKey.elliptic;
   const data = {
     romeo: {
       id: 'fa3d64c9bcf338bc',
