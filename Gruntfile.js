@@ -352,7 +352,7 @@ module.exports = function(grunt) {
   // Build tasks
   grunt.registerTask('version', ['replace:openpgp']);
   grunt.registerTask('replace_min', ['replace:openpgp_min', 'replace:worker_min']);
-  grunt.registerTask('build', ['replace:lightweight_build', 'browserify:openpgp', 'browserify:worker', 'version', 'terser', 'header', 'replace_min', 'replace:full_build']);
+  grunt.registerTask('build', ['replace:lightweight_build', 'browserify:openpgp', 'browserify:worker', 'version', 'terser', 'header', 'replace_min']);
   grunt.registerTask('documentation', ['jsdoc']);
   grunt.registerTask('default', ['build']);
   grunt.registerTask('full-build', ['replace:full_build']);

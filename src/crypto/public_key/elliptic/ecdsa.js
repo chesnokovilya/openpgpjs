@@ -31,7 +31,7 @@ import enums from '../../../enums';
 import util from '../../../util';
 import Curve, { webCurves, privateToJwk, rawPublicToJwk } from './curves';
 
-const useIndutnyElliptic = require('./build.env').default;
+const useIndutnyElliptic = require('../../../build.env').default;
 const KeyPair = require('./indutnyKey').default;
 
 const webCrypto = util.getWebCrypto();
@@ -58,25 +58,32 @@ async function sign(oid, hash_algo, message, publicKey, privateKey, hashed) {
       getPublic: () => publicKey,
       getPrivate: () => privateKey
     };
-    if (curve.web && util.getWebCrypto()) {
-      // If browser doesn't support a curve, we'll catch it
-      try {
-        // need to await to make sure browser succeeds
-        const signature = await webSign(curve, hash_algo, message, keyPair);
-        return signature;
-      } catch (err) {
-        util.print_debug("Browser did not support signing: " + err.message);
+    switch (curve.type) {
+      case 'web': {
+        // If browser doesn't support a curve, we'll catch it
+        try {
+          // need to await to make sure browser succeeds
+          const signature = await webSign(curve, hash_algo, message, keyPair);
+          return signature;
+        } catch (err) {
+          util.print_debug("Browser did not support signing: " + err.message);
+        }
+        break;
       }
-    } else if (curve.node && util.getNodeCrypto()) {
-      signature = await nodeSign(curve, hash_algo, message, keyPair);
+      case 'node': {
+        signature = await nodeSign(curve, hash_algo, message, keyPair);
+        return {
+          r: signature.r.toArrayLike(Uint8Array),
+          s: signature.s.toArrayLike(Uint8Array)
+        };
+      }
     }
   }
-  if (!signature && useIndutnyElliptic) {
-    const key = new KeyPair(curve, { priv: privateKey });
-    signature = key.keyPair.sign(hashed);
-  } else if(signature && !useIndutnyElliptic) {
+  if(!signature && !useIndutnyElliptic) {
     throw(new Error('This curve is supported only in the full build of OpenPGP.js'));
   }
+  const key = new KeyPair(curve, { priv: privateKey });
+  signature = key.keyPair.sign(hashed);
   return {
     r: signature.r.toArrayLike(Uint8Array),
     s: signature.s.toArrayLike(Uint8Array)
@@ -224,7 +231,6 @@ async function nodeVerify(curve, hash_algo, { r, s }, message, publicKey) {
   }, 'pem', {
     label: 'PUBLIC KEY'
   });
-  console.log(key);
   const signature = ECDSASignature.encode({
     r: new BN(r), s: new BN(s)
   }, 'der');
