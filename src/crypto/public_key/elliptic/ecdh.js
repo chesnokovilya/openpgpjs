@@ -40,9 +40,7 @@ import hash from '../../hash';
 import type_kdf_params from '../../../type/kdf_params';
 import enums from '../../../enums';
 import util from '../../../util';
-
-const useIndutnyElliptic = require('../../../build.env').default;
-const KeyPair = require('./indutnyKey').default;
+import KeyPair from './indutnyKey';
 
 const webCrypto = util.getWebCrypto();
 const nodeCrypto = util.getNodeCrypto();
@@ -114,9 +112,10 @@ async function genPublicEphemeralKey(curve, Q) {
       return nodePublicEphemeralKey(curve, Q);
     }
   }
-  if (useIndutnyElliptic) {
-    return ellipticPublicEphemeralKey(curve, Q);
+  if (!util.getFullBuild()) {
+    throw(new Error('This curve is only supported in the full build of OpenPGP.js'));
   }
+  return ellipticPublicEphemeralKey(curve, Q);
 }
 
 /**
@@ -177,10 +176,10 @@ async function genPrivateEphemeralKey(curve, V, Q, d) {
       return nodePrivateEphemeralKey(curve, V, d);
     }
   }
-  if (useIndutnyElliptic) {
-    return ellipticPrivateEphemeralKey(curve, V, d);
+  if (!util.getFullBuild()) {
+    throw(new Error('This curve is only supported in the full build of OpenPGP.js'));
   }
-  throw(new Error('This curve is only supported in the full build of OpenPGP.js'));
+  return ellipticPrivateEphemeralKey(curve, V, d);
 }
 
 /**

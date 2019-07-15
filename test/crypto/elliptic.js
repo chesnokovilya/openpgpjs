@@ -238,7 +238,21 @@ describe('Elliptic Curve Cryptography', function () {
         )).to.be.rejectedWith(Error, /Not valid curve/)
       ]);
     });
-    it('Invalid public key', function () {
+    it('Invalid public key Node crypto', async function () {
+      if (!openpgp.util.getNodeCrypto()) {
+        this.skip();
+      }
+      await expect(verify_signature(
+        'secp256k1', 8, [], [], [], []
+      )).to.eventually.be.false;
+      await expect(verify_signature(
+        'secp256k1', 8, [], [], [], secp256k1_invalid_point_format
+      )).to.eventually.be.false;
+    });
+    it('Invalid public key in elliptic', function () {
+      if (openpgp.util.getNodeCrypto()) {
+        this.skip();
+      }
       return Promise.all([
         expect(verify_signature(
           'secp256k1', 8, [], [], [], []
@@ -248,7 +262,18 @@ describe('Elliptic Curve Cryptography', function () {
         )).to.be.rejectedWith(Error, /Unknown point format/)
       ]);
     });
-    it('Invalid point', function (done) {
+    it('Invalid point in node crypto', function (done) {
+      if (!openpgp.util.getNodeCrypto()) {
+        this.skip();
+      }
+      expect(verify_signature(
+        'secp256k1', 8, [], [], [], secp256k1_invalid_point
+      )).to.eventually.be.false.notify(done);
+    });
+    it('Invalid point in elliptic', function (done) {
+      if (!openpgp.util.getFullBuild() || openpgp.util.getNodeCrypto()) {
+        this.skip()
+      }
       expect(verify_signature(
         'secp256k1', 8, [], [], [], secp256k1_invalid_point
       )).to.be.rejectedWith(Error, /Invalid elliptic public key/).notify(done);
@@ -469,24 +494,6 @@ describe('Elliptic Curve Cryptography', function () {
     return Z;
   }
 
-  async function genNodePrivateEphemeralKey(curve, V, d, fingerprint) {
-    const curveObj = new openpgp.crypto.publicKey.elliptic.Curve(curve);
-    const oid = new openpgp.OID(curveObj.oid);
-    const { sharedKey } = await openpgp.crypto.publicKey.elliptic.ecdh.nodePrivateEphemeralKey(
-      curveObj, V, d
-    );
-    let cipher_algo = curveObj.cipher;
-    const hash_algo = curveObj.hash;
-    const param = openpgp.crypto.publicKey.elliptic.ecdh.buildEcdhParam(
-      openpgp.enums.publicKey.ecdh, oid, cipher_algo, hash_algo, fingerprint
-    );
-    cipher_algo = openpgp.enums.read(openpgp.enums.symmetric, cipher_algo);
-    const Z = await openpgp.crypto.publicKey.elliptic.ecdh.kdf(
-      hash_algo, sharedKey, openpgp.crypto.cipher[cipher_algo].keySize, param, curveObj, false
-    );
-    return Z;
-  }
-
   describe('ECDHE key generation', function () {
     it('Invalid curve', function (done) {
       expect(genPublicEphemeralKey("secp256k1", Q1, fingerprint1)
@@ -554,7 +561,7 @@ describe('Elliptic Curve Cryptography', function () {
     });
     it('Comparing keys derived using nodeCrypto and elliptic', async function () {
       const names = ["p256", "p384", "p521"];
-      if (!openpgp.util.getNodeCrypto() || openpgp.config.only_constant_time_curves) {
+      if (!openpgp.util.getNodeCrypto() || !openpgp.util.getFullBuild()) {
         this.skip();
       }
       return Promise.all(names.map(async function (name) {
