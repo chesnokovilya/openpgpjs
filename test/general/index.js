@@ -16,5 +16,6 @@ describe('General', function () {
   require('./brainpool.js');
   require('./decompression.js');
   require('./streaming.js');
+  require('./ecc_secp256k1.js');
 });
 
