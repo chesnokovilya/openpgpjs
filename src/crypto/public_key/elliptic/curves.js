@@ -37,7 +37,6 @@ import OID from '../../../type/oid';
 import KeyPair from './indutnyKey';
 
 const indutnyEc = require('elliptic');
-//const KeyPair = require('./indutnyKey').default;
 
 const webCrypto = util.getWebCrypto();
 const nodeCrypto = util.getNodeCrypto();
@@ -232,6 +231,7 @@ Curve.prototype.genKeyPair = async function () {
     });
     return new KeyPair(this, { priv: r.getPrivate().toArray() });
   }
+  throw(new Error('This curve is only supported in the full build of OpenPGP.js'));
 };
 
 async function generate(curve) {

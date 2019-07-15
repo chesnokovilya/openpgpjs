@@ -30,9 +30,7 @@ import stream from 'web-stream-tools';
 import enums from '../../../enums';
 import util from '../../../util';
 import Curve, { webCurves, privateToJwk, rawPublicToJwk } from './curves';
-
-const useIndutnyElliptic = require('../../../build.env').default;
-const KeyPair = require('./indutnyKey').default;
+import KeyPair from './indutnyKey';
 
 const webCrypto = util.getWebCrypto();
 const nodeCrypto = util.getNodeCrypto();
@@ -79,7 +77,7 @@ async function sign(oid, hash_algo, message, publicKey, privateKey, hashed) {
       }
     }
   }
-  if(!signature && !useIndutnyElliptic) {
+  if(!signature && !util.getFullBuild()) {
     throw(new Error('This curve is supported only in the full build of OpenPGP.js'));
   }
   const key = new KeyPair(curve, { priv: privateKey });
@@ -106,26 +104,29 @@ async function verify(oid, hash_algo, signature, message, publicKey, hashed) {
   const curve = new Curve(oid);
   if (message && !message.locked) {
     message = await stream.readToEnd(message);
-    if (curve.web && util.getWebCrypto()) {
-      // If browser doesn't support a curve, we'll catch it
-      try {
-        // need to await to make sure browser succeeds
-        const result = await webVerify(curve, hash_algo, signature, message, publicKey);
-        return result;
-      } catch (err) {
-        util.print_debug("Browser did not support signing: " + err.message);
+    switch (curve.type) {
+      case 'web': {
+        try {
+          // need to await to make sure browser succeeds
+          const result = await webVerify(curve, hash_algo, signature, message, publicKey);
+          return result;
+        } catch (err) {
+          util.print_debug("Browser did not support signing: " + err.message);
+        }
+        break;
       }
-    } else if (curve.node && util.getNodeCrypto()) {
-      return nodeVerify(curve, hash_algo, signature, message, publicKey);
+      case 'node': {
+        return nodeVerify(curve, hash_algo, signature, message, publicKey);
+      }
     }
   }
-  if (useIndutnyElliptic) {
-    //elliptic fallback
-    const key = new KeyPair(curve, { pub: publicKey });
-    const digest = (typeof hash_algo === 'undefined') ? message : hashed;
-    return key.keyPair.verify(digest, signature);
+  if (!util.getFullBuild()) {
+    throw(new Error('This curve is only supported in the full build of OpenPGP.js'));
   }
-  throw(new Error('This curve is only supported in the full build of OpenPGP.js'));
+  //elliptic fallback
+  const key = new KeyPair(curve, { pub: publicKey });
+  const digest = (typeof hash_algo === 'undefined') ? message : hashed;
+  return key.keyPair.verify(digest, signature);
 }
 
 export default { sign, verify };
