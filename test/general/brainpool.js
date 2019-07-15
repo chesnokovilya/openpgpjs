@@ -284,7 +284,6 @@ describe('Brainpool Cryptography', function () {
       if (!openpgp.util.getNodeCrypto() && !openpgp.util.getFullBuild()) {
           this.skip();
       }
-
     },
     beforeEach: function() {
       openpgp.config.use_native = true;
