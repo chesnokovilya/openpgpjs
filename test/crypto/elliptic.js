@@ -151,7 +151,19 @@ describe('Elliptic Curve Cryptography', function () {
       }
       done();
     });
-    it('Creating KeyPair', function () {
+    it('Creating KeyPair light build', function () {
+      const names = ['p256', 'p384', 'p521', 'curve25519'];
+      return Promise.all(names.map(function (name) {
+        const curve = new elliptic_curves.Curve(name);
+        return curve.genKeyPair().then(keyPair => {
+          expect(keyPair).to.exist;
+        });
+      }));
+    });
+    it('Creating KeyPair full build', function () {
+      if (!openpgp.util.getFullBuild() && !openpgp.util.getNodeCrypto()) {
+        this.skip;
+      }
       const names = ['p256', 'p384', 'p521', 'secp256k1', 'curve25519', 'brainpoolP256r1', 'brainpoolP384r1', 'brainpoolP512r1'];
       return Promise.all(names.map(function (name) {
         const curve = new elliptic_curves.Curve(name);
@@ -238,7 +250,7 @@ describe('Elliptic Curve Cryptography', function () {
         )).to.be.rejectedWith(Error, /Not valid curve/)
       ]);
     });
-    it('Invalid public key Node crypto', async function () {
+    it('Invalid public key in node crypto', async function () {
       if (!openpgp.util.getNodeCrypto()) {
         this.skip();
       }
@@ -250,7 +262,7 @@ describe('Elliptic Curve Cryptography', function () {
       )).to.eventually.be.false;
     });
     it('Invalid public key in elliptic', function () {
-      if (openpgp.util.getNodeCrypto()) {
+      if (!openpgp.util.getFullBuild() || openpgp.util.getNodeCrypto()) {
         this.skip();
       }
       return Promise.all([
@@ -272,13 +284,16 @@ describe('Elliptic Curve Cryptography', function () {
     });
     it('Invalid point in elliptic', function (done) {
       if (!openpgp.util.getFullBuild() || openpgp.util.getNodeCrypto()) {
-        this.skip()
+        this.skip();
       }
       expect(verify_signature(
         'secp256k1', 8, [], [], [], secp256k1_invalid_point
       )).to.be.rejectedWith(Error, /Invalid elliptic public key/).notify(done);
     });
     it('Invalid signature', function (done) {
+      if (!openpgp.util.getFullBuild() && !openpgp.util.getNodeCrypto()) {
+        this.skip();
+      }
       expect(verify_signature(
         'secp256k1', 8, [], [], [], secp256k1_point
       )).to.eventually.be.false.notify(done);

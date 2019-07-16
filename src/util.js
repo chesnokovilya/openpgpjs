@@ -650,7 +650,7 @@ export default {
   },
 
   getFullBuild: function() {
-    return !!build.default;
+    return build;
   },
 
   isEmailAddress: function(data) {
