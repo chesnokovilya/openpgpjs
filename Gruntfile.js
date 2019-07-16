@@ -136,7 +136,7 @@ module.exports = function(grunt) {
       lightweight_build: {
         src: [
           'src/crypto/public_key/elliptic/curves.js',
-          'src/crypto/public_key/elliptic/build.env.js'
+          'src/build.env.js'
         ],
         overwrite: true,
         replacements: lightweight ? [
@@ -153,7 +153,7 @@ module.exports = function(grunt) {
       full_build: {
         src: [
           'src/crypto/public_key/elliptic/curves.js',
-          'src/crypto/public_key/elliptic/build.env.js'
+          'src/build.env.js'
         ],
         overwrite: true,
         replacements: [
@@ -350,10 +350,9 @@ module.exports = function(grunt) {
   // Build tasks
   grunt.registerTask('version', ['replace:openpgp']);
   grunt.registerTask('replace_min', ['replace:openpgp_min', 'replace:worker_min']);
-  grunt.registerTask('build', ['replace:lightweight_build', 'browserify:openpgp', 'browserify:worker', 'version', 'terser', 'header', 'replace_min']);
+  grunt.registerTask('build', ['replace:lightweight_build', 'browserify:openpgp', 'browserify:worker', 'version', 'terser', 'header', 'replace_min', 'replace:full_build']);
   grunt.registerTask('documentation', ['jsdoc']);
   grunt.registerTask('default', ['build']);
-  grunt.registerTask('full-build', ['replace:full_build']);
   // Test/Dev tasks
   grunt.registerTask('test', ['eslint', 'mochaTest']);
   grunt.registerTask('coverage', ['mocha_istanbul:coverage']);
