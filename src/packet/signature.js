@@ -654,6 +654,27 @@ Signature.prototype.hash = async function(signatureType, data, toHash, streaming
   return crypto.hash.digest(hashAlgorithm, toHash);
 };
 
+Signature.prototype.hashWithData = async function(signatureType, data, toHash, streaming=true) {
+  const hashAlgorithm = enums.write(enums.hash, this.hashAlgorithm);
+  if (!toHash) toHash = this.toHash(signatureType, data);
+  let hash;
+  let ret;
+  if (!streaming && util.isStream(toHash)) {
+    hash = stream.fromAsync(async () => this.hash(signatureType, data, await stream.readToEnd(toHash)));
+    ret = {
+      hash: hash,
+      toHash: toHash
+    };
+    return ret;
+  }
+  hash = crypto.hash.digest(hashAlgorithm, toHash);
+  ret = {
+    hash: hash,
+    toHash: toHash
+  };
+  return ret;
+};
+
 
 /**
  * verifies the signature packet. Note: not all signature types are implemented
@@ -676,10 +697,11 @@ Signature.prototype.verify = async function (key, signatureType, data) {
   let hash;
   if (this.hashed) {
     hash = this.hashed;
+    toHash = this.toHashed;
   } else {
     hash = await this.hash(signatureType, data, toHash);
+    toHash = this.toHash(signatureType, data);
   }
-  toHash = this.toHash(signatureType, data);
   hash = await stream.readToEnd(hash);
   if (this.signedHashValue[0] !== hash[0] ||
       this.signedHashValue[1] !== hash[1]) {

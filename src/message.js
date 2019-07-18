@@ -578,6 +578,12 @@ Message.prototype.verify = async function(keys, date=new Date(), streaming) {
         onePassSig.correspondingSigReject = reject;
       });
       onePassSig.signatureData = stream.fromAsync(async () => (await onePassSig.correspondingSig).signatureData);
+      if (onePassSig.publicKeyAlgorithm === enums.publicKey.ecdsa) {
+        const { hash , toHash } = await onePassSig.hashWithData(onePassSig.signatureType, literalDataList[0], undefined, streaming);
+        onePassSig.hashed = hash;
+        onePassSig.toHashed = toHash;
+        return;
+      }
       onePassSig.hashed = await onePassSig.hash(onePassSig.signatureType, literalDataList[0], undefined, streaming);
     }));
     msg.packets.stream = stream.transformPair(msg.packets.stream, async (readable, writable) => {
