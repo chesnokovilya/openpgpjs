@@ -323,14 +323,14 @@ function rawPublicToJwk(payloadSize, name, publicKey) {
   const bufX = publicKey.slice(1, len+1);
   const bufY = publicKey.slice(len+1, len*2+1);
   // https://www.rfc-editor.org/rfc/rfc7518.txt
-  const jwKey = {
+  const jwk = {
     kty: "EC",
     crv: name,
     x: util.Uint8Array_to_b64(bufX, true),
     y: util.Uint8Array_to_b64(bufY, true),
     ext: true
   };
-  return jwKey;
+  return jwk;
 }
 
 /**

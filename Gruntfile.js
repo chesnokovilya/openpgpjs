@@ -37,7 +37,7 @@ module.exports = function(grunt) {
       ]
     }
   }]];
-  let lightweight = !!grunt.option('lightweight');
+  const lightweight = !!grunt.option('lightweight');
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
     browserify: {
