@@ -209,8 +209,8 @@ async function nodeSign(curve, hash_algo, message, keyPair) {
   const key = ECPrivateKey.encode({
     version: 1,
     parameters: curve.oid,
-    privateKey: toArray(keyPair.getPrivate(), 'hex'),
-    publicKey: { unused: 0, data: toArray(keyPair.getPublic()) }
+    privateKey: Array.from(keyPair.getPrivate()),
+    publicKey: { unused: 0, data: Array.from(keyPair.getPublic()) }
   }, 'pem', {
     label: 'EC PRIVATE KEY'
   });
@@ -222,13 +222,12 @@ async function nodeVerify(curve, hash_algo, { r, s }, message, publicKey) {
   const verify = nodeCrypto.createVerify(enums.read(enums.hash, hash_algo));
   verify.write(message);
   verify.end();
-
   const key = SubjectPublicKeyInfo.encode({
     algorithm: {
       algorithm: [1, 2, 840, 10045, 2, 1],
       parameters: curve.oid
     },
-    subjectPublicKey: { unused: 0, data: toArray(publicKey) }
+    subjectPublicKey: { unused: 0, data: Array.from(publicKey) }
   }, 'pem', {
     label: 'PUBLIC KEY'
   });
@@ -283,29 +282,3 @@ const SubjectPublicKeyInfo = nodeCrypto ?
       this.key('subjectPublicKey').bitstr()
     );
   }) : undefined;
-
-// Originally written by https://github.com/indutny
-// from minimalistic-crypto-utils https://github.com/indutny/minimalistic-crypto-utils
-function toArray(msg, enc) {
-  if (Array.isArray(msg)) return msg.slice();
-  if (!msg) return [];
-  const res = [];
-  if (typeof msg !== 'string') {
-    for (let i = 0; i < msg.length; i++) res[i] = msg[i] | 0;
-    return res;
-  }
-  if (enc === 'hex') {
-    msg = msg.replace(/[^a-z0-9]+/ig, '');
-    if (msg.length % 2 !== 0) msg = '0' + msg;
-    for (let i = 0; i < msg.length; i += 2) res.push(parseInt(msg[i] + msg[i + 1], 16));
-  } else {
-    for (let i = 0; i < msg.length; i++) {
-      const c = msg.charCodeAt(i);
-      const hi = c >> 8;
-      const lo = c & 0xff;
-      if (hi) res.push(hi, lo);
-      else res.push(lo);
-    }
-  }
-  return res;
-}

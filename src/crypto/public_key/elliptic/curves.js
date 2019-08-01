@@ -36,7 +36,7 @@ import util from '../../../util';
 import OID from '../../../type/oid';
 import KeyPair from './indutnyKey';
 
-const indutnyEc = undefined;
+const indutnyEc = require('elliptic');
 
 const webCrypto = util.getWebCrypto();
 const nodeCrypto = util.getNodeCrypto();
