@@ -677,9 +677,9 @@ Signature.prototype.verify = async function (key, signatureType, data) {
   if (this.hashed) {
     hash = this.hashed;
   } else {
+    toHash = this.toHash(signatureType, data);
     hash = await this.hash(signatureType, data, toHash);
   }
-  toHash = this.toHash(signatureType, data);
   hash = await stream.readToEnd(hash);
   if (this.signedHashValue[0] !== hash[0] ||
       this.signedHashValue[1] !== hash[1]) {
