@@ -36,7 +36,7 @@ import util from '../../../util';
 import OID from '../../../type/oid';
 import KeyPair from './indutnyKey';
 
-const indutnyEc = require('elliptic');
+const indutnyEc = undefined;
 
 const webCrypto = util.getWebCrypto();
 const nodeCrypto = util.getNodeCrypto();
@@ -224,14 +224,13 @@ Curve.prototype.genKeyPair = async function () {
     default:
       break;
   }
-  if (util.getFullBuild()) {
-    //elliptic fallback
-    const r = await this.indutnyCurve.genKeyPair({
-      entropy: util.Uint8Array_to_str(await random.getRandomBytes(32))
-    });
-    return new KeyPair(this, { priv: r.getPrivate().toArray() });
+  if (!util.getFullBuild()) {
+    throw(new Error('This curve is only supported in the full build of OpenPGP.js'));
   }
-  throw(new Error('This curve is only supported in the full build of OpenPGP.js'));
+  const r = await this.indutnyCurve.genKeyPair({
+    entropy: util.Uint8Array_to_str(await random.getRandomBytes(32))
+  });
+  return new KeyPair(this, { priv: r.getPrivate().toArray() });
 };
 
 async function generate(curve) {
