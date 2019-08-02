@@ -10,7 +10,6 @@ if [ $OPENPGPJSTEST = "coverage" ]; then
 elif [ $OPENPGPJSTEST = "unit" ]; then
   echo "Running OpenPGP.js unit tests on node.js."
   grunt build && grunt test
-  grunt build --lightweight && grunt test
 
 
 elif [ $OPENPGPJSTEST = "saucelabs" ]; then
