@@ -26,16 +26,15 @@ import enums from '../../../enums';
 
 /**
  * @constructor
+ * indutnyCurve initialisation is lenghty process, so we could init it once and pass it here
  */
-function KeyPair(curve, options) {
-  if (!curve.indutnyCurve) {
+function KeyPair(curve, options, indutnyCurve = undefined) {
+  if (!curve.getIndutnyCurve) {
     throw(new Error('This curve is supported only in the full build of OpenPGP.js'));
   }
   this.curve = curve;
-  if (this.curve.name !== 'ed25519') {
-    this.keyType = enums.publicKey.ecdsa;
-    this.keyPair = this.curve.indutnyCurve.keyPair(options);
-  }
+  this.indutnyCurve = indutnyCurve ? indutnyCurve : curve.getIndutnyCurve(curve.name);
+  this.keyPair = this.indutnyCurve.keyPair(options);
   if (
     this.keyType === enums.publicKey.ecdsa &&
     this.keyPair.validate().result !== true
@@ -43,18 +42,5 @@ function KeyPair(curve, options) {
     throw new Error('Invalid elliptic public key');
   }
 }
-
-KeyPair.prototype.getPublic = function () {
-  const compact = this.curve.indutnyCurve.curve.type === 'edwards' ||
-        this.curve.indutnyCurve.curve.type === 'mont';
-  return this.keyPair.getPublic('array', compact);
-};
-
-KeyPair.prototype.getPrivate = function () {
-  if (this.curve.keyType === enums.publicKey.eddsa) {
-    return this.keyPair.getSecret();
-  }
-  return this.keyPair.getPrivate().toArray();
-};
 
 export default KeyPair;

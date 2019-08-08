@@ -52,10 +52,7 @@ async function sign(oid, hash_algo, message, publicKey, privateKey, hashed) {
   let signature;
   if (message && !message.locked) {
     message = await stream.readToEnd(message);
-    const keyPair = {
-      getPublic: () => publicKey,
-      getPrivate: () => privateKey
-    };
+    const keyPair = { publicKey, privateKey };
     switch (curve.type) {
       case 'web': {
         // If browser doesn't support a curve, we'll catch it
@@ -78,7 +75,7 @@ async function sign(oid, hash_algo, message, publicKey, privateKey, hashed) {
     }
   }
   if(!signature && !util.getFullBuild()) {
-    throw(new Error('This curve is supported only in the full build of OpenPGP.js'));
+    throw new Error('This curve is supported only in the full build of OpenPGP.js');
   }
   const key = new KeyPair(curve, { priv: privateKey });
   signature = key.keyPair.sign(hashed);
@@ -105,23 +102,20 @@ async function verify(oid, hash_algo, signature, message, publicKey, hashed) {
   if (message && !message.locked) {
     message = await stream.readToEnd(message);
     switch (curve.type) {
-      case 'web': {
+      case 'web':
         try {
           // need to await to make sure browser succeeds
-          const result = await webVerify(curve, hash_algo, signature, message, publicKey);
-          return result;
+          return await webVerify(curve, hash_algo, signature, message, publicKey);
         } catch (err) {
           util.print_debug("Browser did not support signing: " + err.message);
         }
         break;
-      }
-      case 'node': {
+      case 'node':
         return nodeVerify(curve, hash_algo, signature, message, publicKey);
-      }
     }
   }
   if (!util.getFullBuild()) {
-    throw(new Error('This curve is only supported in the full build of OpenPGP.js'));
+    throw new Error('This curve is only supported in the full build of OpenPGP.js');
   }
   //elliptic fallback
   const key = new KeyPair(curve, { pub: publicKey });
@@ -141,7 +135,7 @@ export default { sign, verify };
 
 async function webSign(curve, hash_algo, message, keyPair) {
   const len = curve.payloadSize;
-  const jwk = privateToJwk(curve.payloadSize, webCurves[curve.name], keyPair.getPublic(), keyPair.getPrivate());
+  const jwk = privateToJwk(curve.payloadSize, webCurves[curve.name], keyPair.publicKey, keyPair.privateKey);
   const key = await webCrypto.importKey(
     "jwk",
     jwk,
@@ -209,8 +203,8 @@ async function nodeSign(curve, hash_algo, message, keyPair) {
   const key = ECPrivateKey.encode({
     version: 1,
     parameters: curve.oid,
-    privateKey: Array.from(keyPair.getPrivate()),
-    publicKey: { unused: 0, data: Array.from(keyPair.getPublic()) }
+    privateKey: Array.from(keyPair.privateKey),
+    publicKey: { unused: 0, data: Array.from(keyPair.publicKey) }
   }, 'pem', {
     label: 'EC PRIVATE KEY'
   });

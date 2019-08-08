@@ -65,6 +65,9 @@ module.exports = function(grunt) {
               'core-js/fn/string/repeat',
               'core-js/fn/symbol',
               'core-js/fn/object/assign',
+            ],
+            lightweight ? [] : [
+              'indutny/elliptic'
             ]
           ),
           transform: [
@@ -135,15 +138,11 @@ module.exports = function(grunt) {
       },
       lightweight_build: {
         src: [
-          'src/crypto/public_key/elliptic/curves.js',
-          'src/build.env.js'
+          'dist/openpgp.js',
+          'dist/openpgp.js'
         ],
         overwrite: true,
         replacements: lightweight ? [
-          {
-            from: "require('elliptic')",
-            to: "undefined"
-          },
           {
             from: "USE_INDUTNY_ELLIPTIC = true",
             to: "USE_INDUTNY_ELLIPTIC = false"
@@ -152,15 +151,11 @@ module.exports = function(grunt) {
       },
       full_build: {
         src: [
-          'src/crypto/public_key/elliptic/curves.js',
-          'src/build.env.js'
+          'dist/openpgp.js',
+          'dist/openpgp.js'
         ],
         overwrite: true,
         replacements: [
-          {
-            from: "const indutnyEc = undefined;",
-            to: "const indutnyEc = require('elliptic');"
-          },
           {
             from: "USE_INDUTNY_ELLIPTIC = false",
             to: "USE_INDUTNY_ELLIPTIC = true"
@@ -350,7 +345,7 @@ module.exports = function(grunt) {
   // Build tasks
   grunt.registerTask('version', ['replace:openpgp']);
   grunt.registerTask('replace_min', ['replace:openpgp_min', 'replace:worker_min']);
-  grunt.registerTask('build', ['replace:lightweight_build', 'browserify:openpgp', 'browserify:worker', 'version', 'terser', 'header', 'replace_min', 'replace:full_build']);
+  grunt.registerTask('build', ['browserify:openpgp', 'browserify:worker', 'replace:lightweight_build', 'version', 'terser', 'header', 'replace_min']);
   grunt.registerTask('documentation', ['jsdoc']);
   grunt.registerTask('default', ['build']);
   // Test/Dev tasks

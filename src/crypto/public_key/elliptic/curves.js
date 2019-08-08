@@ -36,7 +36,7 @@ import util from '../../../util';
 import OID from '../../../type/oid';
 import KeyPair from './indutnyKey';
 
-const indutnyEc = require('elliptic');
+const indutnyEc = util.getFullBuild() ? require('elliptic') : undefined;
 
 const webCrypto = util.getWebCrypto();
 const nodeCrypto = util.getNodeCrypto();
@@ -170,9 +170,9 @@ function Curve(oid_or_name, params) {
   } else if (this.name === 'ed25519') {
     this.type = 'ed25519';
   }
-  if (util.getFullBuild()) {
-    this.indutnyCurve = indutnyCurve(this.name);
-  }
+  this.getIndutnyCurve = util.getFullBuild() ? function (name) {
+    return new indutnyEc.ec(name);
+  } : undefined;
 }
 
 Curve.prototype.genKeyPair = async function () {
@@ -180,22 +180,14 @@ Curve.prototype.genKeyPair = async function () {
   switch (this.type) {
     case 'web': {
       try {
-        keyPair = await webGenKeyPair(this.name);
-        return {
-          getPublic: () => keyPair.publicKey,
-          getPrivate: () => keyPair.privateKey
-        };
+        return await webGenKeyPair(this.name);
       } catch (err) {
         util.print_debug("Browser did not support generating ec key " + err.message);
         break;
       }
     }
     case 'node': {
-      keyPair = await nodeGenKeyPair(this.name);
-      return {
-        getPublic: () => keyPair.publicKey,
-        getPrivate: () => keyPair.privateKey
-      };
+      return nodeGenKeyPair(this.name);
     }
     case 'curve25519': {
       const privateKey = await random.getRandomBytes(32);
@@ -207,30 +199,22 @@ Curve.prototype.genKeyPair = async function () {
       secretKey = secretKey.toArrayLike(Uint8Array, 'le', 32);
       keyPair = nacl.box.keyPair.fromSecretKey(secretKey);
       const publicKey = util.concatUint8Array([new Uint8Array([0x40]), keyPair.publicKey]);
-      return {
-        getPublic: () => publicKey,
-        getPrivate: () => privateKey
-      };
+      return { publicKey, privateKey };
     }
     case 'ed25519': {
       const privateKey = await random.getRandomBytes(32);
       const keyPair = nacl.sign.keyPair.fromSeed(privateKey);
       const publicKey = util.concatUint8Array([new Uint8Array([0x40]), keyPair.publicKey]);
-      return {
-        getPublic: () => publicKey,
-        getPrivate: () => privateKey
-      };
+      return { publicKey, privateKey };
     }
-    default:
-      break;
   }
   if (!util.getFullBuild()) {
-    throw(new Error('This curve is only supported in the full build of OpenPGP.js'));
+    throw new Error('This curve is only supported in the full build of OpenPGP.js');
   }
-  const r = await this.indutnyCurve.genKeyPair({
+  keyPair = await this.getIndutnyCurve(this.name).genKeyPair({
     entropy: util.Uint8Array_to_str(await random.getRandomBytes(32))
   });
-  return new KeyPair(this, { priv: r.getPrivate().toArray() });
+  return { publicKey: keyPair.getPublic('array', false), privateKey: keyPair.getPrivate().toArray() };
 };
 
 async function generate(curve) {
@@ -238,8 +222,8 @@ async function generate(curve) {
   const keyPair = await curve.genKeyPair();
   return {
     oid: curve.oid,
-    Q: new BN(keyPair.getPublic()),
-    d: new BN(keyPair.getPrivate()),
+    Q: new BN(keyPair.publicKey),
+    d: new BN(keyPair.privateKey),
     hash: curve.hash,
     cipher: curve.cipher
   };
@@ -284,10 +268,6 @@ async function nodeGenKeyPair(name) {
     privateKey: new Uint8Array(ecdh.getPrivateKey())
   };
 }
-
-const indutnyCurve = util.getFullBuild() ? function (name) {
-  return new indutnyEc.ec(name);
-} : undefined;
 
 //////////////////////////
 //                      //

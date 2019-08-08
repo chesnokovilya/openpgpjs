@@ -5,7 +5,7 @@ chai.use(require('chai-as-promised'));
 
 const expect = chai.expect;
 
-describe('Elliptic Curve Cryptography', function () {
+describe.only('Elliptic Curve Cryptography', function () {
   const elliptic_curves = openpgp.crypto.publicKey.elliptic;
   const key_data = {
     p256: {
@@ -162,7 +162,7 @@ describe('Elliptic Curve Cryptography', function () {
     });
     it('Creating KeyPair full build', function () {
       if (!openpgp.util.getFullBuild() && !openpgp.util.getNodeCrypto()) {
-        this.skip;
+        this.skip();
       }
       const names = ['p256', 'p384', 'p521', 'secp256k1', 'curve25519', 'brainpoolP256r1', 'brainpoolP384r1', 'brainpoolP512r1'];
       return Promise.all(names.map(function (name) {
@@ -326,8 +326,8 @@ describe('Elliptic Curve Cryptography', function () {
     it('Sign and verify message', function () {
       const curve = new elliptic_curves.Curve('p521');
       return curve.genKeyPair().then(async keyPair => {
-        const keyPublic = new Uint8Array(keyPair.getPublic());
-        const keyPrivate = new Uint8Array(keyPair.getPrivate());
+        const keyPublic = new Uint8Array(keyPair.publicKey);
+        const keyPrivate = new Uint8Array(keyPair.privateKey);
         const oid = curve.oid;
         const message = p384_message;
         return elliptic_curves.ecdsa.sign(oid, 10, message, keyPublic, keyPrivate, await openpgp.crypto.hash.digest(10, message)).then(async signature => {
