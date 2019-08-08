@@ -8,7 +8,8 @@ chai.use(require('chai-as-promised'));
 const expect = chai.expect;
 
 describe('Elliptic Curve Cryptography for secp256k1 curve', function () {
-  if (!openpgp.util.getNodeCrypto() && !openpgp.util.getFullBuild()) {
+  //only x25519 crypto is fully functional in lightbuild
+  if (!openpgp.util.getFullBuild()) {
     before(function() {
       this.skip();
     });

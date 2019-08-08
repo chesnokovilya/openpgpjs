@@ -168,7 +168,7 @@ function Curve(oid_or_name, params) {
   } else if (this.name === 'ed25519') {
     this.type = 'ed25519';
   }
-  this.getIndutnyCurve = util.getFullBuild() ? function (name) {
+  this.getIndutnyCurve = util.getFullBuild() ? name => {
     const indutnyEc = require('elliptic');
     return new indutnyEc.ec(name);
   } : undefined;

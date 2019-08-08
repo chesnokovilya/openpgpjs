@@ -9,7 +9,8 @@ const input = require('./testInputs.js');
 const expect = chai.expect;
 
 describe('Elliptic Curve Cryptography for NIST P-256,P-384,P-521 curves', function () {
-  if (!openpgp.util.getNodeCrypto() && !openpgp.util.getFullBuild()) {
+  //only x25519 crypto is fully functional in lightbuild
+  if (!openpgp.util.getFullBuild()) {
     before(function() {
       this.skip();
     });

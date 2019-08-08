@@ -9,7 +9,8 @@ const input = require('./testInputs.js');
 const expect = chai.expect;
 
 describe('Brainpool Cryptography', function () {
-  if (!openpgp.util.getNodeCrypto() && !openpgp.util.getFullBuild()) {
+  //only x25519 crypto is fully functional in lightbuild
+  if (!openpgp.util.getFullBuild()) {
     before(function() {
       this.skip();
     });
