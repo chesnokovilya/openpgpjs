@@ -5,7 +5,7 @@ chai.use(require('chai-as-promised'));
 
 const expect = chai.expect;
 
-describe.only('Elliptic Curve Cryptography', function () {
+describe('Elliptic Curve Cryptography', function () {
   const elliptic_curves = openpgp.crypto.publicKey.elliptic;
   const key_data = {
     p256: {
@@ -151,20 +151,12 @@ describe.only('Elliptic Curve Cryptography', function () {
       }
       done();
     });
-    it('Creating KeyPair light build', function () {
-      const names = ['p256', 'p384', 'p521', 'curve25519'];
-      return Promise.all(names.map(function (name) {
-        const curve = new elliptic_curves.Curve(name);
-        return curve.genKeyPair().then(keyPair => {
-          expect(keyPair).to.exist;
-        });
-      }));
-    });
-    it('Creating KeyPair full build', function () {
+    it('Creating KeyPair', function () {
       if (!openpgp.util.getFullBuild() && !openpgp.util.getNodeCrypto()) {
         this.skip();
       }
-      const names = ['p256', 'p384', 'p521', 'secp256k1', 'curve25519', 'brainpoolP256r1', 'brainpoolP384r1', 'brainpoolP512r1'];
+      const names = openpgp.util.getFullBuild ? ['p256', 'p384', 'p521', 'secp256k1', 'curve25519', 'brainpoolP256r1', 'brainpoolP384r1', 'brainpoolP512r1'] :
+      ['p256', 'p384', 'p521', 'curve25519'];
       return Promise.all(names.map(function (name) {
         const curve = new elliptic_curves.Curve(name);
         return curve.genKeyPair().then(keyPair => {
@@ -206,6 +198,17 @@ describe.only('Elliptic Curve Cryptography', function () {
       const ecdsa = elliptic_curves.ecdsa;
       return ecdsa.verify(
         oid, hash, { r: new Uint8Array(r), s: new Uint8Array(s) }, message, new Uint8Array(pub), await openpgp.crypto.hash.digest(hash, message)
+      );
+    };
+    const verify_signature_elliptic = async function (oid, hash, r, s, message, pub) {
+      if (openpgp.util.isString(message)) {
+        message = openpgp.util.str_to_Uint8Array(message);
+      } else if (!openpgp.util.isUint8Array(message)) {
+        message = new Uint8Array(message);
+      }
+      const ecdsa = elliptic_curves.ecdsa;
+      return ecdsa.ellipticVerify(
+        new elliptic_curves.Curve(oid), { r: new Uint8Array(r), s: new Uint8Array(s) }, await openpgp.crypto.hash.digest(hash, message), new Uint8Array(pub)
       );
     };
     const secp256k1_dummy_value = new Uint8Array([
@@ -250,45 +253,37 @@ describe.only('Elliptic Curve Cryptography', function () {
         )).to.be.rejectedWith(Error, /Not valid curve/)
       ]);
     });
-    it('Invalid public key in node crypto', async function () {
-      if (!openpgp.util.getNodeCrypto()) {
-        this.skip();
-      }
-      await expect(verify_signature(
-        'secp256k1', 8, [], [], [], []
-      )).to.eventually.be.false;
-      await expect(verify_signature(
-        'secp256k1', 8, [], [], [], secp256k1_invalid_point_format
-      )).to.eventually.be.false;
-    });
-    it('Invalid public key in elliptic', function () {
-      if (!openpgp.util.getFullBuild() || openpgp.util.getNodeCrypto()) {
-        this.skip();
-      }
-      return Promise.all([
-        expect(verify_signature(
+    it('Invalid public key', async function () {
+      if (openpgp.util.getNodeCrypto()) {
+        await expect(verify_signature(
           'secp256k1', 8, [], [], [], []
-        )).to.be.rejectedWith(Error, /Unknown point format/),
-        expect(verify_signature(
+        )).to.eventually.be.false;
+        await expect(verify_signature(
           'secp256k1', 8, [], [], [], secp256k1_invalid_point_format
-        )).to.be.rejectedWith(Error, /Unknown point format/)
-      ]);
-    });
-    it('Invalid point in node crypto', function (done) {
-      if (!openpgp.util.getNodeCrypto()) {
-        this.skip();
+        )).to.eventually.be.false; 
+      } 
+      if (openpgp.util.getFullBuild()) {
+        return Promise.all([
+          expect(verify_signature_elliptic(
+            'secp256k1', 8, [], [], [], []
+          )).to.be.rejectedWith(Error, /Unknown point format/),
+          expect(verify_signature_elliptic(
+            'secp256k1', 8, [], [], [], secp256k1_invalid_point_format
+          )).to.be.rejectedWith(Error, /Unknown point format/)
+        ]);
       }
-      expect(verify_signature(
-        'secp256k1', 8, [], [], [], secp256k1_invalid_point
-      )).to.eventually.be.false.notify(done);
     });
-    it('Invalid point in elliptic', function (done) {
-      if (!openpgp.util.getFullBuild() || openpgp.util.getNodeCrypto()) {
-        this.skip();
+    it('Invalid point', function () {
+      if (openpgp.util.getNodeCrypto()) {
+        expect(verify_signature(
+          'secp256k1', 8, [], [], [], secp256k1_invalid_point
+        )).to.eventually.be.false;
       }
-      expect(verify_signature(
-        'secp256k1', 8, [], [], [], secp256k1_invalid_point
-      )).to.be.rejectedWith(Error, /Invalid elliptic public key/).notify(done);
+      if(openpgp.util.getFullBuild()) {
+        expect(verify_signature_elliptic(
+          'secp256k1', 8, [], [], [], secp256k1_invalid_point
+        )).to.be.rejectedWith(Error, /Invalid elliptic public key/);
+      }
     });
     it('Invalid signature', function (done) {
       if (!openpgp.util.getFullBuild() && !openpgp.util.getNodeCrypto()) {

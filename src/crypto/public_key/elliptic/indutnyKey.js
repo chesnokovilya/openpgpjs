@@ -35,10 +35,7 @@ function KeyPair(curve, options, indutnyCurve = undefined) {
   this.curve = curve;
   this.indutnyCurve = indutnyCurve ? indutnyCurve : curve.getIndutnyCurve(curve.name);
   this.keyPair = this.indutnyCurve.keyPair(options);
-  if (
-    this.keyType === enums.publicKey.ecdsa &&
-    this.keyPair.validate().result !== true
-  ) {
+  if (this.keyPair.validate().result !== true) {
     throw new Error('Invalid elliptic public key');
   }
 }

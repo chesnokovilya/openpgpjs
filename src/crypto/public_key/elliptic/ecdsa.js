@@ -77,12 +77,7 @@ async function sign(oid, hash_algo, message, publicKey, privateKey, hashed) {
   if(!signature && !util.getFullBuild()) {
     throw new Error('This curve is supported only in the full build of OpenPGP.js');
   }
-  const key = new KeyPair(curve, { priv: privateKey });
-  signature = key.keyPair.sign(hashed);
-  return {
-    r: signature.r.toArrayLike(Uint8Array),
-    s: signature.s.toArrayLike(Uint8Array)
-  };
+  return ellipticSign(curve, hashed, privateKey);
 }
 
 /**
@@ -118,12 +113,11 @@ async function verify(oid, hash_algo, signature, message, publicKey, hashed) {
     throw new Error('This curve is only supported in the full build of OpenPGP.js');
   }
   //elliptic fallback
-  const key = new KeyPair(curve, { pub: publicKey });
   const digest = (typeof hash_algo === 'undefined') ? message : hashed;
-  return key.keyPair.verify(digest, signature);
+  return ellipticVerify(curve, signature, digest, publicKey);
 }
 
-export default { sign, verify };
+export default { sign, verify, ellipticVerify, ellipticSign };
 
 
 //////////////////////////
@@ -132,6 +126,19 @@ export default { sign, verify };
 //                      //
 //////////////////////////
 
+async function ellipticSign(curve, hashed, privateKey) {
+  const key = new KeyPair(curve, { priv: privateKey });
+  const signature = key.keyPair.sign(hashed);
+  return {
+    r: signature.r.toArrayLike(Uint8Array),
+    s: signature.s.toArrayLike(Uint8Array)
+  };
+}
+
+async function ellipticVerify(curve, signature, digest, publicKey) {
+  const key = new KeyPair(curve, { pub: publicKey });
+  return key.keyPair.verify(digest, signature);
+}
 
 async function webSign(curve, hash_algo, message, keyPair) {
   const len = curve.payloadSize;
