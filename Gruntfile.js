@@ -66,9 +66,9 @@ module.exports = function(grunt) {
               'core-js/fn/symbol',
               'core-js/fn/object/assign',
             ],
-            lightweight ? [] : [
-              'indutny/elliptic'
-            ]
+            lightweight ? [ 
+              'elliptic'
+            ] : []
           ),
           transform: [
             ["babelify", {

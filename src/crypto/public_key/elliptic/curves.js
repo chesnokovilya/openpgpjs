@@ -34,9 +34,7 @@ import random from '../../random';
 import enums from '../../../enums';
 import util from '../../../util';
 import OID from '../../../type/oid';
-import KeyPair from './indutnyKey';
 
-const indutnyEc = util.getFullBuild() ? require('elliptic') : undefined;
 
 const webCrypto = util.getWebCrypto();
 const nodeCrypto = util.getNodeCrypto();
@@ -171,6 +169,7 @@ function Curve(oid_or_name, params) {
     this.type = 'ed25519';
   }
   this.getIndutnyCurve = util.getFullBuild() ? function (name) {
+    const indutnyEc = require('elliptic');
     return new indutnyEc.ec(name);
   } : undefined;
 }

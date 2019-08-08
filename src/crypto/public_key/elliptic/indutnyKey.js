@@ -22,8 +22,6 @@
  * @module crypto/public_key/elliptic/indutnyKey
  */
 
-import enums from '../../../enums';
-
 /**
  * @constructor
  * indutnyCurve initialisation is lenghty process, so we could init it once and pass it here
