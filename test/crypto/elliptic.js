@@ -254,6 +254,9 @@ describe('Elliptic Curve Cryptography @lightweight', function () {
       ]);
     });
     it('Invalid public key', async function () {
+      if (!openpgp.util.getFullBuild() && !openpgp.util.getNodeCrypto()) {
+        this.skip();
+      }
       if (openpgp.util.getNodeCrypto()) {
         await expect(verify_signature(
           'secp256k1', 8, [], [], [], []
@@ -274,6 +277,9 @@ describe('Elliptic Curve Cryptography @lightweight', function () {
       }
     });
     it('Invalid point', function () {
+      if (!openpgp.util.getFullBuild() && !openpgp.util.getNodeCrypto()) {
+        this.skip();
+      }
       if (openpgp.util.getNodeCrypto()) {
         expect(verify_signature(
           'secp256k1', 8, [], [], [], secp256k1_invalid_point

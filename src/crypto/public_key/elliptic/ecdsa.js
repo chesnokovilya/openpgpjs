@@ -58,7 +58,7 @@ async function sign(oid, hash_algo, message, publicKey, privateKey, hashed) {
         // If browser doesn't support a curve, we'll catch it
         try {
           // need to await to make sure browser succeeds
-          const signature = await webSign(curve, hash_algo, message, keyPair);
+          signature = await webSign(curve, hash_algo, message, keyPair);
           return signature;
         } catch (err) {
           util.print_debug("Browser did not support signing: " + err.message);

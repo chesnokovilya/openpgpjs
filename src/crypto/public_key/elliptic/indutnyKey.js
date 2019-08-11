@@ -24,7 +24,6 @@
 
 /**
  * @constructor
- * indutnyCurve initialisation is lenghty process, so we could init it once and pass it here
  */
 function KeyPair(curve, options, indutnyCurve = undefined) {
   if (!curve.getIndutnyCurve) {

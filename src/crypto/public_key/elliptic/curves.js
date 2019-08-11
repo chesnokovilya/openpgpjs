@@ -35,7 +35,6 @@ import enums from '../../../enums';
 import util from '../../../util';
 import OID from '../../../type/oid';
 
-
 const webCrypto = util.getWebCrypto();
 const nodeCrypto = util.getNodeCrypto();
 
