@@ -5,7 +5,7 @@ chai.use(require('chai-as-promised'));
 
 const expect = chai.expect;
 
-describe('Elliptic Curve Cryptography', function () {
+describe('Elliptic Curve Cryptography @lightweight', function () {
   const elliptic_curves = openpgp.crypto.publicKey.elliptic;
   const key_data = {
     p256: {

@@ -222,10 +222,15 @@ module.exports = function(grunt) {
     },
     mochaTest: {
       unittests: {
-        options: {
+        options: lightweight ? {
           reporter: 'spec',
-          timeout: 120000
-        },
+          timeout: 120000,
+          grep: 'lightweight'
+          } :
+          {
+          reporter: 'spec',
+          timeout: 120000,
+          },
         src: ['test/unittests.js']
       }
     },
@@ -242,6 +247,12 @@ module.exports = function(grunt) {
         cwd: 'dist/',
         src: ['*.js'],
         dest: 'dist/compat/'
+      },
+      lightweight: {
+        expand: true,
+        cwd: 'dist/',
+        src: ['*.js'],
+        dest: 'dist/lightweight/'
       }
     },
     clean: ['dist/'],
