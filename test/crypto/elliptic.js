@@ -396,16 +396,25 @@ describe('Elliptic Curve Cryptography @lightweight', function () {
       )).to.be.rejectedWith(Error, /Not valid curve/).notify(done);
     });
     it('Invalid ephemeral key', function (done) {
+      if (!openpgp.util.getFullBuild() && !openpgp.util.getNodeCrypto()) {
+        this.skip();
+      }
       expect(decrypt_message(
         'secp256k1', 2, 7, [], [], [], [], []
       )).to.be.rejectedWith(Error, /Private key is not valid for specified curve|Unknown point format/).notify(done);
     });
     it('Invalid elliptic public key', function (done) {
+      if (!openpgp.util.getFullBuild() && !openpgp.util.getNodeCrypto()) {
+        this.skip();
+      }
       expect(decrypt_message(
         'secp256k1', 2, 7, secp256k1_value, secp256k1_point, secp256k1_invalid_point, secp256k1_data, []
       )).to.be.rejectedWith(Error, /Public key is not valid for specified curve|Failed to translate Buffer to a EC_POINT|Invalid elliptic public key/).notify(done);
     });
     it('Invalid key data integrity', function (done) {
+      if (!openpgp.util.getFullBuild() && !openpgp.util.getNodeCrypto()) {
+        this.skip();
+      }
       expect(decrypt_message(
         'secp256k1', 2, 7, secp256k1_value, secp256k1_point, secp256k1_point, secp256k1_data, []
       )).to.be.rejectedWith(Error, /Key Data Integrity failed/).notify(done);
@@ -512,6 +521,9 @@ describe('Elliptic Curve Cryptography @lightweight', function () {
 
   describe('ECDHE key generation', function () {
     it('Invalid curve', function (done) {
+      if (!openpgp.util.getFullBuild() && !openpgp.util.getNodeCrypto()) {
+        this.skip();
+      }
       expect(genPublicEphemeralKey("secp256k1", Q1, fingerprint1)
       ).to.be.rejectedWith(Error, /Public key is not valid for specified curve|Failed to translate Buffer to a EC_POINT|Unknown point format/).notify(done);
     });
@@ -554,7 +566,7 @@ describe('Elliptic Curve Cryptography @lightweight', function () {
 
     it('Comparing keys derived using webCrypto and elliptic', async function () {
       const names = ["p256", "p384", "p521"];
-      if (!openpgp.util.getWebCrypto()) {
+      if (!openpgp.util.getWebCrypto() || !openpgp.util.getFullBuild()) {
         this.skip();
       }
       return Promise.all(names.map(async function (name) {

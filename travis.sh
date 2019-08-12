@@ -11,7 +11,6 @@ elif [ $OPENPGPJSTEST = "unit" ]; then
   echo "Running OpenPGP.js unit tests on node.js."
   npm test
 
-
 elif [ $OPENPGPJSTEST = "saucelabs" ]; then
   echo "Running OpenPGP.js browser unit tests on Saucelabs."
 
