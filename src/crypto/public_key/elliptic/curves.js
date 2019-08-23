@@ -34,6 +34,7 @@ import random from '../../random';
 import enums from '../../../enums';
 import util from '../../../util';
 import OID from '../../../type/oid';
+import build from '../../../build.env';
 
 const webCrypto = util.getWebCrypto();
 const nodeCrypto = util.getNodeCrypto();
@@ -168,10 +169,24 @@ function Curve(oid_or_name, params) {
   } else if (this.name === 'ed25519') {
     this.type = 'ed25519';
   }
-  this.getIndutnyCurve = util.getFullBuild() ? name => {
-    const indutnyEc = require('elliptic');
-    return new indutnyEc.ec(name);
+  this.getIndutnyCurve = util.getFullBuild() ? async name => {
+    const elliptic = await this.loadElliptic();
+    return new elliptic.ec(name);
   } : undefined;
+
+  this.loadElliptic = async function() {
+    if(typeof window !== 'undefined') {
+      // Fetch again if it fails, mainly to solve chrome bug (related to dev tools?) "body stream has been lost and cannot be disturbed"
+      const ellipticPromise = util.dl(build.indutny_elliptic_path).catch(() => util.dl(build.indutny_elliptic_path));
+      const ellipticContents = await ellipticPromise;
+      const mainUrl = URL.createObjectURL(new Blob([ellipticContents], { type: 'text/javascript' }));
+      await loadScript(mainUrl);
+      URL.revokeObjectURL(mainUrl);
+      return window.elliptic;
+    }
+    // eslint-disable-next-line
+    return require(build.indutny_elliptic_path);
+  };
 }
 
 Curve.prototype.genKeyPair = async function () {
@@ -326,3 +341,28 @@ function privateToJwk(payloadSize, name, publicKey, privateKey) {
   jwk.d = util.Uint8Array_to_b64(privateKey, true);
   return jwk;
 }
+
+
+const loadScriptHelper = ({ path, integrity }, cb) => {
+  const script = document.createElement('script');
+
+  script.src = path;
+  if (integrity) {
+    script.integrity = integrity;
+  }
+  script.onload = e => cb(e);
+  script.onerror = e => cb(undefined, e);
+
+  document.head.appendChild(script);
+};
+
+const loadScript = (path, integrity) => {
+  return new Promise((resolve, reject) => {
+    loadScriptHelper({ path, integrity }, (event, error) => {
+      if (error) {
+        return reject(error);
+      }
+      return resolve();
+    });
+  });
+};
