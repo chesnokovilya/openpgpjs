@@ -640,7 +640,7 @@ export default {
   },
 
   getFullBuild: function() {
-    return build;
+    return build.use_indutny_elliptic && build.indutny_elliptic_path;
   },
 
   isEmailAddress: function(data) {
@@ -758,5 +758,14 @@ export default {
       result += ALPHABET[MASK & (buffer >> bitsLeft)];
     }
     return result;
+  },
+
+  dl: async function({ filepath, integrity }) {
+    const options = {
+      integrity,
+      credentials: 'include'
+    };
+    const response = await fetch(filepath, options);
+    return response.text();
   }
 };

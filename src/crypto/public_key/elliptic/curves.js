@@ -175,13 +175,16 @@ function Curve(oid_or_name, params) {
   } : undefined;
 
   this.loadElliptic = async function() {
-    if(typeof window !== 'undefined') {
+    if (window.elliptic) {
+      return window.elliptic;
+    } else if(typeof window !== 'undefined') {
       // Fetch again if it fails, mainly to solve chrome bug (related to dev tools?) "body stream has been lost and cannot be disturbed"
-      const ellipticPromise = util.dl(build.indutny_elliptic_path).catch(() => util.dl(build.indutny_elliptic_path));
+      const ellipticPromise = util.dl({ filepath: '../dist/elliptic.js' }).catch(() => util.dl({ filepath: '../dist/elliptic.js' }));
       const ellipticContents = await ellipticPromise;
       const mainUrl = URL.createObjectURL(new Blob([ellipticContents], { type: 'text/javascript' }));
       await loadScript(mainUrl);
       URL.revokeObjectURL(mainUrl);
+      console.log(window.elliptic);
       return window.elliptic;
     }
     // eslint-disable-next-line
@@ -223,7 +226,8 @@ Curve.prototype.genKeyPair = async function () {
   if (!util.getFullBuild()) {
     throw new Error('This curve is only supported in the full build of OpenPGP.js');
   }
-  keyPair = await this.getIndutnyCurve(this.name).genKeyPair({
+  const indutnyCurve = await this.getIndutnyCurve(this.name);
+  keyPair = await indutnyCurve.genKeyPair({
     entropy: util.Uint8Array_to_str(await random.getRandomBytes(32))
   });
   return { publicKey: keyPair.getPublic('array', false), privateKey: keyPair.getPrivate().toArray() };
@@ -357,6 +361,9 @@ const loadScriptHelper = ({ path, integrity }, cb) => {
 };
 
 const loadScript = (path, integrity) => {
+  if(self.importScripts) {
+    return importScripts(path);
+  }
   return new Promise((resolve, reject) => {
     loadScriptHelper({ path, integrity }, (event, error) => {
       if (error) {
