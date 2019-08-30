@@ -643,13 +643,6 @@ export default {
     return build.use_indutny_elliptic;
   },
 
-  getEllipticPath: function() {
-    if (util.detectNode()) {
-      return build.internal_indutny_elliptic_path;
-    }
-    return build.external_uindutny_elliptic ? build.internal_indutny_elliptic_path : build.external_indutny_elliptic_path;
-  },
-
   isEmailAddress: function(data) {
     if (!util.isString(data)) {
       return false;

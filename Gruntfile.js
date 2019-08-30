@@ -50,7 +50,8 @@ module.exports = function(grunt) {
           browserifyOptions: {
             fullPaths: dev,
             debug: dev,
-            standalone: 'openpgp'
+            standalone: 'openpgp',
+            paths: ['./node_modules', './dist/lightweight']
           },
           cacheFile: 'browserify-cache' + (compat ? '-compat' : '') + '.json',
           // Don't bundle these packages with openpgp.js
@@ -146,8 +147,8 @@ module.exports = function(grunt) {
         overwrite: true,
         replacements: lightweight ? [
           {
-            from: "external_elliptic: false",
-            to: "external_elliptic: true"
+            from: "external_indutny_elliptic: false",
+            to: "external_indutny_elliptic: true"
           }
         ] : []
       },
