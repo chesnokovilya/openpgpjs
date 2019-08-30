@@ -147,7 +147,7 @@ module.exports = function(grunt) {
         replacements: lightweight ? [
           {
             from: "external_elliptic: false",
-            to: "external_elliptic: true,"
+            to: "external_elliptic: true"
           }
         ] : []
       },
@@ -159,8 +159,8 @@ module.exports = function(grunt) {
         overwrite: true,
         replacements: exclude_elliptic ? [
           {
-            from: "use_elliptic: true",
-            to: "use_elliptic: false,"
+            from: "use_indutny_elliptic: true",
+            to: "use_indutny_elliptic: false"
           }
         ] : []
       }
@@ -359,7 +359,6 @@ module.exports = function(grunt) {
   grunt.registerTask('build', ['browserify:openpgp', 'browserify:worker', 'replace:lightweight_build', 'replace:exclude_elliptic_build', 'version', 'terser', 'header', 'replace_min']);
   grunt.registerTask('documentation', ['jsdoc']);
   grunt.registerTask('default', ['build']);
-  grunt.registerTask('replace_exclude_elliptic', ['replace:exclude_elliptic_build']);
   // Test/Dev tasks
   grunt.registerTask('test', ['eslint', 'mochaTest']);
   grunt.registerTask('coverage', ['mocha_istanbul:coverage']);
