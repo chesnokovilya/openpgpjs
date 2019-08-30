@@ -202,7 +202,10 @@ module.exports = function(grunt) {
     },
     eslint: {
       target: ['src/**/*.js'],
-      options: { configFile: '.eslintrc.js' }
+      options: { 
+        configFile: '.eslintrc.js',
+        fix: !!grunt.option('fix'),
+      }
     },
     jsdoc: {
       dist: {
