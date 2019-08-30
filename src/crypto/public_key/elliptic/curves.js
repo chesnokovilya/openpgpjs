@@ -303,7 +303,7 @@ function jwkToRawPublic(jwk) {
   const publicKey = new Uint8Array(bufX.length + bufY.length + 1);
   publicKey[0] = 0x04;
   publicKey.set(bufX, 1);
-  publicKey.set(bufY, bufX.length+1);
+  publicKey.set(bufY, bufX.length + 1);
   return publicKey;
 }
 
@@ -316,8 +316,8 @@ function jwkToRawPublic(jwk) {
  */
 function rawPublicToJwk(payloadSize, name, publicKey) {
   const len = payloadSize;
-  const bufX = publicKey.slice(1, len+1);
-  const bufY = publicKey.slice(len+1, len*2+1);
+  const bufX = publicKey.slice(1, len + 1);
+  const bufY = publicKey.slice(len + 1, len * 2 + 1);
   // https://www.rfc-editor.org/rfc/rfc7518.txt
   const jwk = {
     kty: "EC",
