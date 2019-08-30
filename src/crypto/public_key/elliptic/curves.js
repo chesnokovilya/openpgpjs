@@ -179,7 +179,7 @@ function Curve(oid_or_name, params) {
       return window.elliptic;
     } else if(typeof window !== 'undefined' && build.external_indutny_elliptic) {
       // Fetch again if it fails, mainly to solve chrome bug "body stream has been lost and cannot be disturbed"
-      const ellipticPromise = util.dl({ filepath: build.external_indutny_elliptic_path }).catch(() => util.dl({ filepath: build.external_indutny_elliptic_path }));
+      const ellipticPromise = util.dl({ filepath: '../dist/lightweight/elliptic.min.js' }).catch(() => util.dl({ filepath: '../dist/lightweight/elliptic.min.js' }));
       const ellipticContents = await ellipticPromise;
       const mainUrl = URL.createObjectURL(new Blob([ellipticContents], { type: 'text/javascript' }));
       await loadScript(mainUrl);
