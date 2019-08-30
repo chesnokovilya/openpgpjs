@@ -169,7 +169,7 @@ function Curve(oid_or_name, params) {
   } else if (this.name === 'ed25519') {
     this.type = 'ed25519';
   }
-  this.getIndutnyCurve = util.getFullBuild() ? async name => {
+  this.getIndutnyCurve = util.getUseElliptic() ? async name => {
     const elliptic = await this.loadElliptic();
     return new elliptic.ec(name);
   } : undefined;
@@ -178,8 +178,8 @@ function Curve(oid_or_name, params) {
     if (window.elliptic) {
       return window.elliptic;
     } else if(typeof window !== 'undefined') {
-      // Fetch again if it fails, mainly to solve chrome bug (related to dev tools?) "body stream has been lost and cannot be disturbed"
-      const ellipticPromise = util.dl({ filepath: '../dist/elliptic.js' }).catch(() => util.dl({ filepath: '../dist/elliptic.js' }));
+      // Fetch again if it fails, mainly to solve chrome bug "body stream has been lost and cannot be disturbed"
+      const ellipticPromise = util.dl({ filepath: util.getEllipticPath() }).catch(() => util.dl({ filepath: util.getEllipticPath() }));
       const ellipticContents = await ellipticPromise;
       const mainUrl = URL.createObjectURL(new Blob([ellipticContents], { type: 'text/javascript' }));
       await loadScript(mainUrl);
@@ -188,7 +188,7 @@ function Curve(oid_or_name, params) {
       return window.elliptic;
     }
     // eslint-disable-next-line
-    return require(build.indutny_elliptic_path);
+    return require(util.getEllipticPath());
   };
 }
 
@@ -223,7 +223,7 @@ Curve.prototype.genKeyPair = async function () {
       return { publicKey, privateKey };
     }
   }
-  if (!util.getFullBuild()) {
+  if (!util.getUseElliptic()) {
     throw new Error('This curve is only supported in the full build of OpenPGP.js');
   }
   const indutnyCurve = await this.getIndutnyCurve(this.name);
@@ -361,11 +361,12 @@ const loadScriptHelper = ({ path, integrity }, cb) => {
 };
 
 const loadScript = (path, integrity) => {
+  // eslint-disable-next-line
   if(self.importScripts) {
     return importScripts(path);
   }
   return new Promise((resolve, reject) => {
-    loadScriptHelper({ path, integrity }, (event, error) => {
+    loadScriptHelper({ path, integrity }, error => {
       if (error) {
         return reject(error);
       }

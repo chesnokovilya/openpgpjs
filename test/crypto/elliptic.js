@@ -152,10 +152,10 @@ describe('Elliptic Curve Cryptography @lightweight', function () {
       done();
     });
     it('Creating KeyPair', function () {
-      if (!openpgp.util.getFullBuild() && !openpgp.util.getNodeCrypto()) {
+      if (!openpgp.util.getUseElliptic() && !openpgp.util.getNodeCrypto()) {
         this.skip();
       }
-      const names = openpgp.util.getFullBuild ? ['p256', 'p384', 'p521', 'secp256k1', 'curve25519', 'brainpoolP256r1', 'brainpoolP384r1', 'brainpoolP512r1'] :
+      const names = openpgp.util.getUseElliptic ? ['p256', 'p384', 'p521', 'secp256k1', 'curve25519', 'brainpoolP256r1', 'brainpoolP384r1', 'brainpoolP512r1'] :
       ['p256', 'p384', 'p521', 'curve25519'];
       return Promise.all(names.map(function (name) {
         const curve = new elliptic_curves.Curve(name);
@@ -254,7 +254,7 @@ describe('Elliptic Curve Cryptography @lightweight', function () {
       ]);
     });
     it('Invalid public key', async function () {
-      if (!openpgp.util.getFullBuild() && !openpgp.util.getNodeCrypto()) {
+      if (!openpgp.util.getUseElliptic() && !openpgp.util.getNodeCrypto()) {
         this.skip();
       }
       if (openpgp.util.getNodeCrypto()) {
@@ -265,7 +265,7 @@ describe('Elliptic Curve Cryptography @lightweight', function () {
           'secp256k1', 8, [], [], [], secp256k1_invalid_point_format
         )).to.eventually.be.false; 
       } 
-      if (openpgp.util.getFullBuild()) {
+      if (openpgp.util.getUseElliptic()) {
         return Promise.all([
           expect(verify_signature_elliptic(
             'secp256k1', 8, [], [], [], []
@@ -277,7 +277,7 @@ describe('Elliptic Curve Cryptography @lightweight', function () {
       }
     });
     it('Invalid point', function () {
-      if (!openpgp.util.getFullBuild() && !openpgp.util.getNodeCrypto()) {
+      if (!openpgp.util.getUseElliptic() && !openpgp.util.getNodeCrypto()) {
         this.skip();
       }
       if (openpgp.util.getNodeCrypto()) {
@@ -285,14 +285,14 @@ describe('Elliptic Curve Cryptography @lightweight', function () {
           'secp256k1', 8, [], [], [], secp256k1_invalid_point
         )).to.eventually.be.false;
       }
-      if(openpgp.util.getFullBuild()) {
+      if(openpgp.util.getUseElliptic()) {
         expect(verify_signature_elliptic(
           'secp256k1', 8, [], [], [], secp256k1_invalid_point
         )).to.be.rejectedWith(Error, /Invalid elliptic public key/);
       }
     });
     it('Invalid signature', function (done) {
-      if (!openpgp.util.getFullBuild() && !openpgp.util.getNodeCrypto()) {
+      if (!openpgp.util.getUseElliptic() && !openpgp.util.getNodeCrypto()) {
         this.skip();
       }
       expect(verify_signature(
@@ -396,7 +396,7 @@ describe('Elliptic Curve Cryptography @lightweight', function () {
       )).to.be.rejectedWith(Error, /Not valid curve/).notify(done);
     });
     it('Invalid ephemeral key', function (done) {
-      if (!openpgp.util.getFullBuild() && !openpgp.util.getNodeCrypto()) {
+      if (!openpgp.util.getUseElliptic() && !openpgp.util.getNodeCrypto()) {
         this.skip();
       }
       expect(decrypt_message(
@@ -404,7 +404,7 @@ describe('Elliptic Curve Cryptography @lightweight', function () {
       )).to.be.rejectedWith(Error, /Private key is not valid for specified curve|Unknown point format/).notify(done);
     });
     it('Invalid elliptic public key', function (done) {
-      if (!openpgp.util.getFullBuild() && !openpgp.util.getNodeCrypto()) {
+      if (!openpgp.util.getUseElliptic() && !openpgp.util.getNodeCrypto()) {
         this.skip();
       }
       expect(decrypt_message(
@@ -412,7 +412,7 @@ describe('Elliptic Curve Cryptography @lightweight', function () {
       )).to.be.rejectedWith(Error, /Public key is not valid for specified curve|Failed to translate Buffer to a EC_POINT|Invalid elliptic public key/).notify(done);
     });
     it('Invalid key data integrity', function (done) {
-      if (!openpgp.util.getFullBuild() && !openpgp.util.getNodeCrypto()) {
+      if (!openpgp.util.getUseElliptic() && !openpgp.util.getNodeCrypto()) {
         this.skip();
       }
       expect(decrypt_message(
@@ -521,7 +521,7 @@ describe('Elliptic Curve Cryptography @lightweight', function () {
 
   describe('ECDHE key generation', function () {
     it('Invalid curve', function (done) {
-      if (!openpgp.util.getFullBuild() && !openpgp.util.getNodeCrypto()) {
+      if (!openpgp.util.getUseElliptic() && !openpgp.util.getNodeCrypto()) {
         this.skip();
       }
       expect(genPublicEphemeralKey("secp256k1", Q1, fingerprint1)
@@ -566,7 +566,7 @@ describe('Elliptic Curve Cryptography @lightweight', function () {
 
     it('Comparing keys derived using webCrypto and elliptic', async function () {
       const names = ["p256", "p384", "p521"];
-      if (!openpgp.util.getWebCrypto() || !openpgp.util.getFullBuild()) {
+      if (!openpgp.util.getWebCrypto() || !openpgp.util.getUseElliptic()) {
         this.skip();
       }
       return Promise.all(names.map(async function (name) {
@@ -589,7 +589,7 @@ describe('Elliptic Curve Cryptography @lightweight', function () {
     });
     it('Comparing keys derived using nodeCrypto and elliptic', async function () {
       const names = ["p256", "p384", "p521"];
-      if (!openpgp.util.getNodeCrypto() || !openpgp.util.getFullBuild()) {
+      if (!openpgp.util.getNodeCrypto() || !openpgp.util.getUseElliptic()) {
         this.skip();
       }
       return Promise.all(names.map(async function (name) {

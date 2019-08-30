@@ -16,6 +16,7 @@ module.exports = function(grunt) {
   const dev = !!grunt.option('dev');
   const compat = !!grunt.option('compat');
   const lightweight = !!grunt.option('lightweight');
+  const exclude_elliptic = !!grunt.option('exclude-elliptic');
   const plugins = compat ? [
     "transform-async-to-generator",
     "syntax-async-functions",
@@ -66,8 +67,9 @@ module.exports = function(grunt) {
               'core-js/fn/symbol',
               'core-js/fn/object/assign',
             ],
-            lightweight ? [
-              'elliptic'
+            ( lightweight || exclude_elliptic ) ? [
+              'elliptic',
+              '*/elliptic.min.js'
             ] : []
           ),
           transform: [
@@ -144,23 +146,23 @@ module.exports = function(grunt) {
         overwrite: true,
         replacements: lightweight ? [
           {
-            from: "USE_INDUTNY_ELLIPTIC = true",
-            to: "USE_INDUTNY_ELLIPTIC = false"
+            from: "external_elliptic: false",
+            to: "external_elliptic: true,"
           }
         ] : []
       },
-      full_build: {
+      exclude_elliptic_build: {
         src: [
           'dist/openpgp.js',
           'dist/openpgp.js'
         ],
         overwrite: true,
-        replacements: [
+        replacements: exclude_elliptic ? [
           {
-            from: "USE_INDUTNY_ELLIPTIC = false",
-            to: "USE_INDUTNY_ELLIPTIC = true"
+            from: "use_elliptic: true",
+            to: "use_elliptic: false,"
           }
-        ]
+        ] : []
       }
     },
     terser: {
@@ -354,9 +356,10 @@ module.exports = function(grunt) {
   // Build tasks
   grunt.registerTask('version', ['replace:openpgp']);
   grunt.registerTask('replace_min', ['replace:openpgp_min', 'replace:worker_min']);
-  grunt.registerTask('build', ['browserify:openpgp', 'browserify:worker', 'replace:lightweight_build', 'version', 'terser', 'header', 'replace_min']);
+  grunt.registerTask('build', ['browserify:openpgp', 'browserify:worker', 'replace:lightweight_build', 'replace:exclude_elliptic_build', 'version', 'terser', 'header', 'replace_min']);
   grunt.registerTask('documentation', ['jsdoc']);
   grunt.registerTask('default', ['build']);
+  grunt.registerTask('replace_exclude_elliptic', ['replace:exclude_elliptic_build']);
   // Test/Dev tasks
   grunt.registerTask('test', ['eslint', 'mochaTest']);
   grunt.registerTask('coverage', ['mocha_istanbul:coverage']);

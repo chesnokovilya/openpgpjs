@@ -639,8 +639,15 @@ export default {
     return navigator.hardwareConcurrency || 1;
   },
 
-  getFullBuild: function() {
-    return build.use_indutny_elliptic && build.indutny_elliptic_path;
+  getUseElliptic: function() {
+    return build.use_indutny_elliptic;
+  },
+
+  getEllipticPath: function() {
+    if (util.detectNode()) {
+      return build.internal_indutny_elliptic_path;
+    }
+    return build.external_uindutny_elliptic ? build.internal_indutny_elliptic_path : build.external_indutny_elliptic_path;
   },
 
   isEmailAddress: function(data) {

@@ -10,7 +10,7 @@ const expect = chai.expect;
 
 describe('Brainpool Cryptography @lightweight', function () {
   //only x25519 crypto is fully functional in lightbuild
-  if (!openpgp.util.getFullBuild() && !openpgp.util.getNodeCrypto()) {
+  if (!openpgp.util.getUseElliptic() && !openpgp.util.getNodeCrypto()) {
     before(function() {
       this.skip();
     });
@@ -337,7 +337,7 @@ EJ4QcD/oQ6x1M/8X/iKQCtxZP8RnlrbH7ExkNON5s5g=
     if: typeof window !== 'undefined' && window.Worker,
     before: async function() {
       await openpgp.initWorker({ path:'../dist/openpgp.worker.js' });
-      if (!openpgp.util.getNodeCrypto() && !openpgp.util.getFullBuild()) {
+      if (!openpgp.util.getNodeCrypto() && !openpgp.util.getUseElliptic()) {
           this.skip();
       }
     },
