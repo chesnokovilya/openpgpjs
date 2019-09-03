@@ -306,7 +306,7 @@ module.exports = function(grunt) {
     watch: {
       src: {
         files: ['src/**/*.js'],
-        tasks: ['browserify:openpgp', 'browserify:worker']
+        tasks: lightweight ? ['browserify:openpgp', 'browserify:worker',  'replace:lightweight_build'] : ['browserify:openpgp', 'browserify:worker']
       },
       test: {
         files: ['test/*.js', 'test/crypto/**/*.js', 'test/general/**/*.js', 'test/worker/**/*.js'],
@@ -368,7 +368,7 @@ module.exports = function(grunt) {
   grunt.registerTask('replace_min', ['replace:openpgp_min', 'replace:worker_min']);
   grunt.registerTask('build', function() {
       if (lightweight || exclude_elliptic) {
-        grunt.task.run(['browserify:openpgp', 'browserify:worker', 'replace:lightweight_build', 'replace:exclude_elliptic_build', 'copy:indutny_elliptic','version', 'terser', 'header', 'replace_min']);
+        grunt.task.run(['browserify:openpgp', 'browserify:worker', 'replace:lightweight_build', 'replace:exclude_elliptic_build', 'version', 'terser', 'header', 'replace_min']);
         return;
       }
       grunt.task.run(['browserify:openpgp', 'browserify:worker', 'version', 'terser', 'header', 'replace_min']);
