@@ -145,12 +145,12 @@ module.exports = function(grunt) {
           'dist/openpgp.js'
         ],
         overwrite: true,
-        replacements: lightweight ? [
+        replacements: [
           {
             from: "external_indutny_elliptic: false",
             to: "external_indutny_elliptic: true"
           }
-        ] : []
+        ]
       },
       exclude_elliptic_build: {
         src: [
@@ -158,12 +158,25 @@ module.exports = function(grunt) {
           'dist/openpgp.js'
         ],
         overwrite: true,
-        replacements: exclude_elliptic ? [
+        replacements: [
           {
             from: "use_indutny_elliptic: true",
             to: "use_indutny_elliptic: false"
           }
-        ] : []
+        ]
+      },
+      indutny_global: {
+        src: [
+          'dist/lightweight/elliptic.min.js',
+          'dist/lightweight/elliptic.min.js'
+        ],
+        overwrite: true,
+        replacements: [
+          {
+            from: 'b.elliptic=a()',
+            to: 'b.openpgp.elliptic=a()'
+          }
+        ]
       }
     },
     terser: {
@@ -306,7 +319,7 @@ module.exports = function(grunt) {
     watch: {
       src: {
         files: ['src/**/*.js'],
-        tasks: ['browserify:openpgp', 'browserify:worker']
+        tasks: lightweight ? ['browserify:openpgp', 'browserify:worker',  'replace:lightweight_build'] : ['browserify:openpgp', 'browserify:worker']
       },
       test: {
         files: ['test/*.js', 'test/crypto/**/*.js', 'test/general/**/*.js', 'test/worker/**/*.js'],
@@ -367,8 +380,11 @@ module.exports = function(grunt) {
   grunt.registerTask('version', ['replace:openpgp']);
   grunt.registerTask('replace_min', ['replace:openpgp_min', 'replace:worker_min']);
   grunt.registerTask('build', function() {
-      if (lightweight || exclude_elliptic) {
-        grunt.task.run(['browserify:openpgp', 'browserify:worker', 'replace:lightweight_build', 'replace:exclude_elliptic_build', 'copy:indutny_elliptic','version', 'terser', 'header', 'replace_min']);
+      if (lightweight) {
+        grunt.task.run(['browserify:openpgp', 'browserify:worker', 'replace:lightweight_build', 'copy:indutny_elliptic','version', 'terser', 'header', 'replace_min']);
+        return;
+      } else if (exclude_elliptic) {
+        grunt.task.run(['browserify:openpgp', 'browserify:worker', 'replace:exclude_elliptic_build', 'version', 'terser', 'header', 'replace_min']);
         return;
       }
       grunt.task.run(['browserify:openpgp', 'browserify:worker', 'version', 'terser', 'header', 'replace_min']);

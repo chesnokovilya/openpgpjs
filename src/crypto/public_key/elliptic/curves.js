@@ -35,6 +35,7 @@ import enums from '../../../enums';
 import util from '../../../util';
 import OID from '../../../type/oid';
 import build from '../../../build.env';
+import { loadElliptic, getElliptic } from '../../../openpgp';
 
 const webCrypto = util.getWebCrypto();
 const nodeCrypto = util.getNodeCrypto();
@@ -170,27 +171,9 @@ function Curve(oid_or_name, params) {
     this.type = 'ed25519';
   }
   this.getIndutnyCurve = util.getUseElliptic() ? async name => {
-    const elliptic = await this.loadElliptic();
+    const elliptic = getElliptic() || await loadElliptic(build.external_indutny_elliptic_path);
     return new elliptic.ec(name);
   } : undefined;
-
-  this.loadElliptic = async function() {
-    if (typeof window !== 'undefined' && window.elliptic && build.external_indutny_elliptic) {
-      return window.elliptic;
-    } else if(typeof window !== 'undefined' && build.external_indutny_elliptic) {
-      // Fetch again if it fails, mainly to solve chrome bug "body stream has been lost and cannot be disturbed"
-      const ellipticPromise = util.dl({ filepath: '../dist/lightweight/elliptic.min.js' }).catch(() => util.dl({ filepath: '../dist/lightweight/elliptic.min.js' }));
-      const ellipticContents = await ellipticPromise;
-      const mainUrl = URL.createObjectURL(new Blob([ellipticContents], { type: 'text/javascript' }));
-      await loadScript(mainUrl);
-      URL.revokeObjectURL(mainUrl);
-      return window.elliptic;
-    } else if(util.detectNode() && build.external_indutny_elliptic) {
-      // eslint-disable-next-line
-      return require('elliptic.min.js');
-    }
-    return require('elliptic');
-  };
 }
 
 Curve.prototype.genKeyPair = async function () {
@@ -346,32 +329,3 @@ function privateToJwk(payloadSize, name, publicKey, privateKey) {
   jwk.d = util.Uint8Array_to_b64(privateKey, true);
   return jwk;
 }
-
-
-const loadScriptHelper = ({ path, integrity }, cb) => {
-  const script = document.createElement('script');
-
-  script.src = path;
-  if (integrity) {
-    script.integrity = integrity;
-  }
-  script.onload = e => cb(e);
-  script.onerror = e => cb(undefined, e);
-
-  document.head.appendChild(script);
-};
-
-const loadScript = (path, integrity) => {
-  // eslint-disable-next-line
-  if(self.importScripts) {
-    return importScripts(path);
-  }
-  return new Promise((resolve, reject) => {
-    loadScriptHelper({ path, integrity }, error => {
-      if (error) {
-        return reject(error);
-      }
-      return resolve();
-    });
-  });
-};
