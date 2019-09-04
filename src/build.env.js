@@ -18,5 +18,5 @@
 export default {
   use_indutny_elliptic: true,
   external_indutny_elliptic: false,
-  external_indutny_elliptic_path: '../dist/lightweight/elliptic.min.js'
+  external_indutny_elliptic_path: 'elliptic.min.js'
 };

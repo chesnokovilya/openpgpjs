@@ -82,6 +82,10 @@ export async function initWorker({ path = 'openpgp.worker.js', n = 1, workers = 
 
 let elliptic;  // instance of the indutny/elliptic
 
+/**
+ *  Load elliptic by path or from node_modules
+ * @param {String} path relative path to elliptic browserified package
+ */
 export async function loadElliptic(path) {
   if(typeof window !== 'undefined' && build.external_indutny_elliptic) {
     // Fetch again if it fails, mainly to solve chrome bug "body stream has been lost and cannot be disturbed"
@@ -94,11 +98,10 @@ export async function loadElliptic(path) {
     return elliptic;
   } else if(util.detectNode() && build.external_indutny_elliptic) {
     // eslint-disable-next-line
-    return require(path);
+    return require('elliptic');
   }
-  elliptic = require('elliptic')
-  return elliptic;
-};
+  return require('elliptic');
+}
 
 export function getElliptic() {
   return elliptic;
