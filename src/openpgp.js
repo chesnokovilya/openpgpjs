@@ -98,9 +98,11 @@ export async function loadElliptic(path) {
     return elliptic;
   } else if(util.detectNode() && build.external_indutny_elliptic) {
     // eslint-disable-next-line
-    return require('elliptic');
+    elliptic = require('./' + path);
+    return elliptic;
   }
-  return require('elliptic');
+  elliptic = require('elliptic');
+  return elliptic;
 }
 
 export function getElliptic() {

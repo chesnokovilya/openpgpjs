@@ -381,7 +381,7 @@ module.exports = function(grunt) {
   grunt.registerTask('replace_min', ['replace:openpgp_min', 'replace:worker_min']);
   grunt.registerTask('build', function() {
       if (lightweight) {
-        grunt.task.run(['browserify:openpgp', 'browserify:worker', 'replace:lightweight_build', 'copy:indutny_elliptic', 'replace:indutny_global', 'version', 'terser', 'header', 'replace_min']);
+        grunt.task.run(['copy:indutny_elliptic', 'browserify:openpgp', 'browserify:worker', 'replace:lightweight_build', 'replace:indutny_global', 'version', 'terser', 'header', 'replace_min']);
         return;
       } else if (exclude_elliptic) {
         grunt.task.run(['browserify:openpgp', 'browserify:worker', 'replace:exclude_elliptic_build', 'version', 'terser', 'header', 'replace_min']);
