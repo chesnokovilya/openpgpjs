@@ -1845,6 +1845,7 @@ function versionSpecificTests() {
       expect(key.users[0].userId.userid).to.equal(userId);
       expect(key.users[0].selfCertifications[0].isPrimaryUserID).to.be.true;
       expect(key.subKeys).to.have.length(2);
+      console.log(key.subKeys[0]);
       expect(key.subKeys[0].getAlgorithmInfo().algorithm).to.equal('ecdh');
       expect(key.subKeys[1].getAlgorithmInfo().algorithm).to.equal('ecdh');
     });
@@ -2193,7 +2194,7 @@ function versionSpecificTests() {
   });
 }
 
-describe('Key @subkey', function() {
+describe('Key', function() {
   let rsaGenStub;
   let rsaGenValue = openpgp.crypto.publicKey.rsa.generate(openpgp.util.getWebCryptoAll() ? 2048 : 512, "10001");
 
@@ -2852,12 +2853,17 @@ VYGdb3eNlV8CfoEC
   });
 });
 
-describe('addSubkey functionality testing @subkey', function(){
-  it('create and add a new rsa subkey to a rsa key', async function() {
+describe('addSubkey functionality testing', function(){
+  it.only('add a new rsa subkey to a rsa key', async function() {
     const privateKey = (await openpgp.key.readArmored(priv_key_rsa)).keys[0];
+    //console.log(privateKey.isDecrypted());
+    //signature = await openpgp.sign({ privateKeys:[privateKey], message: openpgp.cleartext.fromText('hello world') })
     await privateKey.decrypt('hello world');
+    await privateKey.encrypt('hey ho');
+    //const opt2 = {sign: true};
+    const opt2 = {};
     const total = privateKey.subKeys.length;
-    const newPrivateKey = await privateKey.addSubkey();
+    const newPrivateKey = await privateKey.addSubkey(opt2);
     const subKey = newPrivateKey.subKeys[total];
     expect(subKey).to.exist;
     expect(newPrivateKey.subKeys.length).to.be.equal(total+1);
@@ -2868,7 +2874,7 @@ describe('addSubkey functionality testing @subkey', function(){
     expect(await subKey.verify(newPrivateKey.primaryKey)).to.be.equal(openpgp.enums.keyStatus.valid);
   });
 
-  it('create and add a new ec subkey to a ec key', async function() {
+  it('add a new ec subkey to a ec key', async function() {
     const userId = 'test <a@b.com>';
     const opt = {curve: 'curve25519', userIds: [userId], subkeys:[]};
     const privateKey = (await openpgp.generateKey(opt)).key;
@@ -2885,7 +2891,7 @@ describe('addSubkey functionality testing @subkey', function(){
     expect(await subKey.verify(privateKey.primaryKey)).to.be.equal(openpgp.enums.keyStatus.valid);
   });
 
-  it('create and add a new ec subkey to a rsa key', async function() {
+  it('add a new ec subkey to a rsa key', async function() {
     const privateKey = (await openpgp.key.readArmored(priv_key_rsa)).keys[0];
     privateKey.subKeys = [];
     await privateKey.decrypt('hello world');
@@ -2900,7 +2906,7 @@ describe('addSubkey functionality testing @subkey', function(){
     expect(await subKey.verify(privateKey.primaryKey)).to.be.equal(openpgp.enums.keyStatus.valid);
   });
 
-  it('sign/verify data with the new subkey correctly using curve25519', async function() {
+  it('sign/verify data with the new subkey correctly using curve25519 key', async function() {
     const userId = 'test <a@b.com>';
     const opt = {curve: 'curve25519', userIds: [userId], subkeys:[]};
     const privateKey = (await openpgp.generateKey(opt)).key;
@@ -2922,7 +2928,26 @@ describe('addSubkey functionality testing @subkey', function(){
     expect(await verified[0].verified).to.be.true;
   });
 
-  it('encrypt/decrypt data with the new subkey correctly using curve25519', async function() {
+  it('sign/verify data with the new subkey correctly using rsa key', async function() {
+    const privateKey = (await openpgp.key.readArmored(priv_key_rsa)).keys[0];
+    await privateKey.primaryKey.clearPrivateParams();
+    await privateKey.decrypt('hello world');
+    const total = privateKey.subKeys.length;
+    const opt2 = {sign: true};
+    const newPrivateKey = await privateKey.addSubkey(opt2);
+    const subKey = newPrivateKey.subKeys[total];
+    expect(subKey.getAlgorithmInfo().algorithm).to.be.equal('rsa_encrypt_sign');
+    expect(await subKey.verify(newPrivateKey.primaryKey)).to.be.equal(openpgp.enums.keyStatus.valid);
+    expect(await newPrivateKey.getSigningKey()).to.be.equal(subKey);
+    const signed = await openpgp.sign({message: openpgp.cleartext.fromText('the data to signed'), privateKeys: newPrivateKey, armor:false});
+    const verified = await signed.message.verify([newPrivateKey.toPublic()]);
+    expect(verified).to.exist;
+    expect(verified.length).to.be.equal(1);
+    expect(await verified[0].keyid).to.be.equal(subKey.getKeyId());
+    expect(await verified[0].verified).to.be.true;
+  });
+
+  it('encrypt/decrypt data with the new subkey correctly using curve25519 key', async function() {
     const userId = 'test <a@b.com>';
     const vData = 'the data to encrypted!';
     const opt = {curve: 'curve25519', userIds: [userId], subkeys:[]};
@@ -2938,14 +2963,14 @@ describe('addSubkey functionality testing @subkey', function(){
     const pkSessionKeys = encrypted.message.packets.filterByTag(openpgp.enums.packet.publicKeyEncryptedSessionKey);
     expect(pkSessionKeys).to.exist;
     expect(pkSessionKeys.length).to.be.equal(1);
-    expect(pkSessionKeys[0].publicKeyId).to.be.equals(publicKey.subKeys[0].keyPacket.getKeyId());
+    expect(pkSessionKeys[0].publicKeyId.toHex()).to.be.equals(publicKey.subKeys[0].keyPacket.getKeyId().toHex());
     const decrypted = await openpgp.decrypt({message: encrypted.message, privateKeys: newPrivateKey})
     expect(decrypted).to.exist;
     expect(decrypted.data).to.be.equal(vData);
   });
 
 
-  it('encrypt/decrypt data with the new subkey correctly using rsa', async function() {
+  it('encrypt/decrypt data with the new subkey correctly using rsa key', async function() {
     const privateKey = (await openpgp.key.readArmored(priv_key_rsa)).keys[0];
     await privateKey.decrypt('hello world');
     const total = privateKey.subKeys.length;
@@ -2959,30 +2984,9 @@ describe('addSubkey functionality testing @subkey', function(){
     const pkSessionKeys = encrypted.message.packets.filterByTag(openpgp.enums.packet.publicKeyEncryptedSessionKey);
     expect(pkSessionKeys).to.exist;
     expect(pkSessionKeys.length).to.be.equal(1);
-    // console.log(publicKey.subKeys[0].keyPacket.getKeyId());
-    // console.log(pkSessionKeys[0]);
-    // todo fix below
-    // expect(pkSessionKeys[0].publicKeyId).to.be.equals(publicKey.subKeys[0].keyPacket.getKeyId());
+    expect(pkSessionKeys[0].publicKeyId.toHex()).to.be.equals(subKey.keyPacket.getKeyId().toHex());
     const decrypted = await openpgp.decrypt({message: encrypted.message, privateKeys: newPrivateKey})
     expect(decrypted).to.exist;
     expect(decrypted.data).to.be.equal(vData);
-  });
-
-  it('sign/verify data with the new subkey correctly using rsa', async function() {
-    const privateKey = (await openpgp.key.readArmored(priv_key_rsa)).keys[0];
-    await privateKey.decrypt('hello world');
-    const total = privateKey.subKeys.length;
-    const opt2 = {sign: true};
-    const newPrivateKey = await privateKey.addSubkey(opt2);
-    const subKey = newPrivateKey.subKeys[total];
-    expect(subKey.getAlgorithmInfo().algorithm).to.be.equal('rsa_encrypt_sign');
-    expect(await subKey.verify(newPrivateKey.primaryKey)).to.be.equal(openpgp.enums.keyStatus.valid);
-    expect(await newPrivateKey.getSigningKey()).to.be.equal(subKey);
-    const signed = await openpgp.sign({message: openpgp.cleartext.fromText('the data to signed'), privateKeys: newPrivateKey, armor:false});
-    const verified = await signed.message.verify([newPrivateKey.toPublic()]);
-    expect(verified).to.exist;
-    expect(verified.length).to.be.equal(1);
-    expect(await verified[0].keyid).to.be.equal(subKey.getKeyId());
-    expect(await verified[0].verified).to.be.true;
   });
 });

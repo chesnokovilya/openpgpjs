@@ -91,8 +91,10 @@ export default {
    * @async
    */
   sign: async function(algo, hash_algo, key_params, data, hashed) {
+    console.log('in crypto sign');
     const types = [].concat(crypto.getPubKeyParamTypes(algo), crypto.getPrivKeyParamTypes(algo));
     if (key_params.length < types.length) {
+      console.log('in error');
       throw new Error('Missing private key parameters');
     }
     switch (algo) {

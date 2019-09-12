@@ -839,14 +839,11 @@ Key.prototype.addSubkey = async function(options = {}) {
   }
   const secretKeyPacket = this.primaryKey;
   if (!secretKeyPacket.isDecrypted()) {
-    throw new Error("Key is not decrypted");
+    //throw new Error("Key is not decrypted");
   }
   options = sanitizeKeyOptions(options, defaultOptions);
   const keyPacket = await generateSecretSubkey(options);
   const bindingSignature = await bindSignature(keyPacket, secretKeyPacket, options);
-  if (options.passphrase) {
-    await keyPacket.clearPrivateParams();
-  }
   const packetList = this.toPacketlist();
   packetList.push(keyPacket);
   packetList.push(bindingSignature);
@@ -1796,6 +1793,7 @@ async function bindSignature(subkey, primaryKey, options) {
     subkeySignaturePacket.keyExpirationTime = options.keyExpirationTime;
     subkeySignaturePacket.keyNeverExpires = false;
   }
+  console.log('in bind' + primaryKey.isDecrypted());
   await subkeySignaturePacket.sign(primaryKey, dataToSign);
   return subkeySignaturePacket;
 }

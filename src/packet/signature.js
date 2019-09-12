@@ -170,7 +170,6 @@ Signature.prototype.sign = async function (key, data, detached = false) {
   }
 
   this.issuerKeyId = key.getKeyId();
-
   // Add hashed subpackets
   arr.push(this.write_hashed_sub_packets());
 
@@ -185,7 +184,7 @@ Signature.prototype.sign = async function (key, data, detached = false) {
   this.signature = stream.fromAsync(async () => crypto.signature.sign(
     publicKeyAlgorithm, hashAlgorithm, params, toHash, await stream.readToEnd(hash)
   ));
-
+  console.log(this.signature);
   // Store the fact that this signature is valid, e.g. for when we call `await
   // getLatestValidSignature(this.revocationSignatures, key, data)` later. Note
   // that this only holds up if the key and data passed to verify are the same
