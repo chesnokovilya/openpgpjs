@@ -354,3 +354,23 @@ export function isValidEncryptionKeyPacket(keyPacket, signature) {
       (signature.keyFlags[0] & enums.keyFlags.encrypt_communication) !== 0 ||
       (signature.keyFlags[0] & enums.keyFlags.encrypt_storage) !== 0);
 }
+
+export function packetToPiblic(keypacket) {
+  let bytes;
+  let pubKeyPacket;
+  let pubSubkeyPacket;
+  switch (keypacket.tag) {
+    case enums.packet.secretKey:
+      bytes = keypacket.writePublicKey();
+      pubKeyPacket = new packet.PublicKey();
+      pubKeyPacket.read(bytes);
+      return pubKeyPacket;
+    case enums.packet.secretSubkey:
+      bytes = keypacket.writePublicKey();
+      pubSubkeyPacket = new packet.PublicSubkey();
+      pubSubkeyPacket.read(bytes);
+      return pubSubkeyPacket;
+    default:
+      return keypacket;
+  }
+}

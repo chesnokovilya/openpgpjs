@@ -230,27 +230,9 @@ Key.prototype.isPrivate = function() {
 Key.prototype.toPublic = function() {
   const packetlist = new packet.List();
   const keyPackets = this.toPacketlist();
-  let bytes;
-  let pubKeyPacket;
-  let pubSubkeyPacket;
-  for (let i = 0; i < keyPackets.length; i++) {
-    switch (keyPackets[i].tag) {
-      case enums.packet.secretKey:
-        bytes = keyPackets[i].writePublicKey();
-        pubKeyPacket = new packet.PublicKey();
-        pubKeyPacket.read(bytes);
-        packetlist.push(pubKeyPacket);
-        break;
-      case enums.packet.secretSubkey:
-        bytes = keyPackets[i].writePublicKey();
-        pubSubkeyPacket = new packet.PublicSubkey();
-        pubSubkeyPacket.read(bytes);
-        packetlist.push(pubSubkeyPacket);
-        break;
-      default:
-        packetlist.push(keyPackets[i]);
-    }
-  }
+  keyPackets.map(helper.packetToPiblic).reduce(function(packet) {
+    return packetlist.push(packet);
+  });
   return new Key(packetlist);
 };
 

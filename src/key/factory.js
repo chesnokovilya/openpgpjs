@@ -324,6 +324,3 @@ export async function readArmored(armoredText) {
   }
 }
 
-export function createKey(packetlist) {
-
-}
