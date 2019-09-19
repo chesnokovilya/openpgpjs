@@ -2869,8 +2869,9 @@ VYGdb3eNlV8CfoEC
 
 describe('addSubkey functionality testing', function(){
   it('create and add a new rsa subkey to a rsa key', async function() {
-    const privateKey = (await openpgp.key.readArmored(priv_key_rsa)).keys[0];
-    await privateKey.decrypt('hello world');
+    const userId = 'test <a@b.com>';
+    const opt = { rsaBits:2048, userIds: [userId], subkeys:[] };
+    const privateKey = (await openpgp.generateKey(opt)).key;
     const total = privateKey.subKeys.length;
     let newPrivateKey = await privateKey.addSubkey();
     const armoredKey = newPrivateKey.armor();
@@ -2882,13 +2883,14 @@ describe('addSubkey functionality testing', function(){
     const pkN = privateKey.primaryKey.params[0];
     expect(subkeyN.byteLength()).to.be.equal(pkN.byteLength());
     expect(subKey.getAlgorithmInfo().algorithm).to.be.equal('rsa_encrypt_sign');
-    expect(subKey.getAlgorithmInfo().rsaBits).to.be.equal(1024);
+    expect(subKey.getAlgorithmInfo().rsaBits).to.be.equal(privateKey.getAlgorithmInfo().rsaBits);
     expect(await subKey.verify(newPrivateKey.primaryKey)).to.be.equal(openpgp.enums.keyStatus.valid);
   });
 
   it('encrypt and decrypt key with added subkey', async function() {
-    const privateKey = (await openpgp.key.readArmored(priv_key_rsa)).keys[0];
-    await privateKey.decrypt('hello world');
+    const userId = 'test <a@b.com>';
+    const opt = { rsaBits:2048, userIds: [userId], subkeys:[] };
+    const privateKey = (await openpgp.generateKey(opt)).key;
     const total = privateKey.subKeys.length;
     let newPrivateKey = await privateKey.addSubkey();
     newPrivateKey = (await openpgp.key.readArmored(newPrivateKey.armor())).keys[0];
@@ -2903,7 +2905,7 @@ describe('addSubkey functionality testing', function(){
     const pkN = privateKey.primaryKey.params[0];
     expect(subkeyN.byteLength()).to.be.equal(pkN.byteLength());
     expect(subKey.getAlgorithmInfo().algorithm).to.be.equal('rsa_encrypt_sign');
-    expect(subKey.getAlgorithmInfo().rsaBits).to.be.equal(1024);
+    expect(subKey.getAlgorithmInfo().rsaBits).to.be.equal(privateKey.getAlgorithmInfo().rsaBits);
     expect(await subKey.verify(importedPrivateKey.primaryKey)).to.be.equal(openpgp.enums.keyStatus.valid);
   });
 
@@ -2932,9 +2934,9 @@ describe('addSubkey functionality testing', function(){
   });
 
   it('create and add a new ec subkey to a rsa key', async function() {
-    const privateKey = (await openpgp.key.readArmored(priv_key_rsa)).keys[0];
-    privateKey.subKeys = [];
-    await privateKey.decrypt('hello world');
+    const userId = 'test <a@b.com>';
+    const opt = { rsaBits:2048, userIds: [userId], subkeys:[] };
+    const privateKey = (await openpgp.generateKey(opt)).key;
     const total = privateKey.subKeys.length;
     const opt2 = {curve: 'curve25519'};
     let newPrivateKey = await privateKey.addSubkey(opt2);
@@ -2997,8 +2999,9 @@ describe('addSubkey functionality testing', function(){
   });
 
   it('sign/verify data with the new subkey correctly using rsa', async function() {
-    const privateKey = (await openpgp.key.readArmored(priv_key_rsa)).keys[0];
-    await privateKey.decrypt('hello world');
+    const userId = 'test <a@b.com>';
+    const opt = { rsaBits:2048, userIds: [userId], subkeys:[] };
+    const privateKey = (await openpgp.generateKey(opt)).key;
     const total = privateKey.subKeys.length;
     const opt2 = {sign: true};
     let newPrivateKey = await privateKey.addSubkey(opt2);
@@ -3017,8 +3020,9 @@ describe('addSubkey functionality testing', function(){
   });
 
   it('encrypt/decrypt data with the new subkey correctly using rsa', async function() {
-    const privateKey = (await openpgp.key.readArmored(priv_key_rsa)).keys[0];
-    await privateKey.decrypt('hello world');
+    const userId = 'test <a@b.com>';
+    const opt = { rsaBits:2048, userIds: [userId], subkeys:[] };
+    const privateKey = (await openpgp.generateKey(opt)).key;
     const total = privateKey.subKeys.length;
     let newPrivateKey = await privateKey.addSubkey();
     const armoredKey = newPrivateKey.armor();
