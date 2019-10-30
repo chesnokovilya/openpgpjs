@@ -184,7 +184,8 @@ module.exports = function(grunt) {
       }
     },
     eslint: {
-      target: ['src/**/*.js', './Gruntfile.js'],
+      target: ['src/**/*.js', './Gruntfile.js', 'test/crypto/eax.js', 'test/crypto/aes_kw.js', 'test/crypto/elliptic.js',
+        'test/crypto/ecdh.js', 'test/crypto/hash/*.js', 'test/crypto/cipher/*.js'],
       options: {
         configFile: '.eslintrc.js',
         fix: !!grunt.option('fix')
@@ -339,6 +340,7 @@ module.exports = function(grunt) {
   grunt.registerTask('documentation', ['jsdoc']);
   grunt.registerTask('default', ['build']);
   // Test/Dev tasks
+  grunt.registerTask('eslint-test', ['eslinttest']);
   grunt.registerTask('test', ['eslint', 'mochaTest']);
   grunt.registerTask('coverage', ['mocha_istanbul:coverage']);
   grunt.registerTask('browsertest', ['build', 'browserify:unittests', 'copy:browsertest', 'connect:test', 'watch']);

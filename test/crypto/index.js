@@ -1,11 +1,12 @@
 describe('Crypto', function () {
   require('./cipher');
   require('./hash');
-  require('./random.js');
-  require('./crypto.js');
-  require('./elliptic.js');
-  require('./pkcs5.js');
-  require('./aes_kw.js');
-  require('./eax.js');
-  require('./ocb.js');
+  require('./random');
+  require('./crypto');
+  require('./elliptic');
+  require('./pkcs5');
+  require('./aes_kw');
+  require('./eax');
+  require('./ocb');
+  require('./ecdh');
 });

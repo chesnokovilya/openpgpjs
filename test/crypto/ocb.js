@@ -14,7 +14,7 @@ describe('Symmetric AES-OCB', function() {
     const K = '000102030405060708090A0B0C0D0E0F';
     const keyBytes = openpgp.util.hex_to_Uint8Array(K);
 
-    var vectors = [
+    const vectors = [
       // From https://tools.ietf.org/html/rfc7253#appendix-A
       {
         N: 'BBAA99887766554433221100',
@@ -136,7 +136,7 @@ describe('Symmetric AES-OCB', function() {
       ct = await ocb.encrypt(msgBytes, nonceBytes, headerBytes);
       ct[2] ^= 8;
       pt = ocb.decrypt(ct, nonceBytes, headerBytes);
-      await expect(pt).to.eventually.be.rejectedWith('Authentication tag mismatch')
+      await expect(pt).to.eventually.be.rejectedWith('Authentication tag mismatch');
 
       // testing without additional data
       ct = await ocb.encrypt(msgBytes, nonceBytes, new Uint8Array());
