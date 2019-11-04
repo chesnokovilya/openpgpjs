@@ -65,7 +65,10 @@ async function sign(oid, hash_algo, m, d, hashed) {
  */
 async function verify(oid, hash_algo, { R, S }, m, publicKey, hashed) {
   const signature = util.concatUint8Array([R, S]);
-  return nacl.sign.detached.verify(hashed, signature, publicKey.subarray(1));
+  console.time('verify');
+  const ver = nacl.sign.detached.verify(hashed, signature, publicKey.subarray(1));
+  console.timeEnd('verify');
+  return ver;
 }
 
 export default { sign, verify };

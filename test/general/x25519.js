@@ -197,17 +197,27 @@ const input = require('./testInputs');
     expect(result.signatures[0].valid).to.be.true;
   });
 
-  it('Encrypt and sign message', async function () {
+  it.only('Encrypt and sign message', async function () {
     const nightPublic = await load_pub_key('night');
     const lightPrivate = await load_priv_key('light');
     const randomData = input.createSomeMessage();
+    const randomData2 = input.createSomeMessage();
+    console.time('encrypt');
     const encrypted = await openpgp.encrypt({ publicKeys: [nightPublic], privateKeys: [lightPrivate], message: openpgp.message.fromText(randomData) });
-
+    console.timeEnd('encrypt');
+    console.time('encrypt2');
+    const encrypted2 = await openpgp.encrypt({ publicKeys: [nightPublic], privateKeys: [lightPrivate], message: openpgp.message.fromText(randomData2) });
+    console.timeEnd('encrypt2');
     const message = await openpgp.message.readArmored(encrypted.data);
     const lightPublic = await load_pub_key('light');
     const nightPrivate = await load_priv_key('night');
+    console.time('decrypt');
     const result = await openpgp.decrypt({ privateKeys: nightPrivate, publicKeys: [lightPublic], message: message });
-
+    console.timeEnd('decrypt');
+    const message2 = await openpgp.message.readArmored(encrypted2.data);
+    console.time('decrypt2');
+    const result2 = await openpgp.decrypt({ privateKeys: nightPrivate, publicKeys: [lightPublic], message: message2 });
+    console.timeEnd('decrypt2');
     expect(result).to.exist;
     expect(result.data).to.equal(randomData);
     expect(result.signatures).to.have.length(1);

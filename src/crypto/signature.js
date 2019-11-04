@@ -32,6 +32,8 @@ export default {
    * @async
    */
   verify: async function(algo, hash_algo, msg_MPIs, pub_MPIs, data, hashed) {
+    console.log('in sig verify');
+    console.trace();
     const types = crypto.getPubKeyParamTypes(algo);
     if (pub_MPIs.length < types.length) {
       throw new Error('Missing public key parameters');
