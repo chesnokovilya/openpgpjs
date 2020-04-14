@@ -700,5 +700,5 @@ function onError(message, error) {
  * @returns {Boolean}   If authenticated encryption should be used
  */
 function nativeAEAD() {
-  return config.aead_protect && (config.aead_mode === enums.aead.eax || config.aead_mode === enums.aead.experimental_gcm) && util.getWebCrypto();
+  return config.aeadProtect && (config.aeadMode === enums.aead.eax || config.aeadMode === enums.aead.experimental_gcm) && util.getWebCrypto();
 }

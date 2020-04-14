@@ -156,7 +156,7 @@ AsyncProxy.prototype.delegate = async function (method, options) {
   }
 
   const data = { options: packet.clone.clonePackets(options) };
-  const transferables = util.getTransferables(data, config.zero_copy);
+  const transferables = util.getTransferables(data, config.zeroCopy);
   const worker = this.workers[workerId];
   worker.requests++;
   const result = await this.callWorker(worker, method, data.options, transferables);

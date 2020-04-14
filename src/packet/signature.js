@@ -455,7 +455,7 @@ Signature.prototype.read_sub_packet = function (bytes, trusted = true) {
 
         this.notations.push([name, value]);
 
-        if (critical && (config.known_notations.indexOf(name) === -1)) {
+        if (critical && (config.knownNotations.indexOf(name) === -1)) {
           throw new Error("Unknown critical notation: " + name);
         }
       } else {

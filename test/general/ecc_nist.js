@@ -108,7 +108,7 @@ describe('Elliptic Curve Cryptography for NIST P-256,P-384,P-521 curves @lightwe
       }
     },
     beforeEach: function() {
-      openpgp.config.use_native = true;
+      openpgp.config.useNative = true;
     },
     after: function() {
       openpgp.destroyWorker();

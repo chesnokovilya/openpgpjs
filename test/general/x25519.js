@@ -548,7 +548,7 @@ tryTests('X25519 Omnibus Tests - Worker', omnibus, {
     }
   },
   beforeEach: function() {
-    openpgp.config.use_native = true;
+    openpgp.config.useNative = true;
   },
   after: function() {
     openpgp.destroyWorker();

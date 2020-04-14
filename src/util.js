@@ -52,19 +52,19 @@ export default {
    * @param  {Object} obj           the options object to be passed to the web worker
    * @returns {Array<ArrayBuffer>}   an array of binary data to be passed
    */
-  getTransferables: function(obj, zero_copy) {
+  getTransferables: function(obj, zeroCopy) {
     const transferables = [];
-    util.collectTransferables(obj, transferables, zero_copy);
+    util.collectTransferables(obj, transferables, zeroCopy);
     return transferables.length ? transferables : undefined;
   },
 
-  collectTransferables: function(obj, collection, zero_copy) {
+  collectTransferables: function(obj, collection, zeroCopy) {
     if (!obj) {
       return;
     }
 
     if (util.isUint8Array(obj)) {
-      if (zero_copy && collection.indexOf(obj.buffer) === -1 && !(
+      if (zeroCopy && collection.indexOf(obj.buffer) === -1 && !(
         navigator.userAgent.indexOf('Version/11.1') !== -1 || // Safari 11.1
         ((navigator.userAgent.match(/Chrome\/(\d+)/) || [])[1] < 56 && navigator.userAgent.indexOf('Edge') === -1) // Chrome < 56
       )) {
@@ -103,7 +103,7 @@ export default {
         if (Object.prototype.toString.call(value) === '[object MessagePort]') {
           throw new Error("Can't transfer the same stream twice.");
         }
-        util.collectTransferables(value, collection, zero_copy);
+        util.collectTransferables(value, collection, zeroCopy);
       });
     }
   },
@@ -541,11 +541,11 @@ export default {
   /**
    * Get native Web Cryptography api, only the current version of the spec.
    * The default configuration is to use the api when available. But it can
-   * be deactivated with config.use_native
+   * be deactivated with config.useNative
    * @returns {Object}   The SubtleCrypto api or 'undefined'
    */
   getWebCrypto: function() {
-    if (!config.use_native) {
+    if (!config.useNative) {
       return;
     }
 
@@ -556,11 +556,11 @@ export default {
    * Get native Web Cryptography api for all browsers, including legacy
    * implementations of the spec e.g IE11 and Safari 8/9. The default
    * configuration is to use the api when available. But it can be deactivated
-   * with config.use_native
+   * with config.useNative
    * @returns {Object}   The SubtleCrypto api or 'undefined'
    */
   getWebCryptoAll: function() {
-    if (!config.use_native) {
+    if (!config.useNative) {
       return;
     }
 
@@ -600,11 +600,11 @@ export default {
 
   /**
    * Get native Node.js crypto api. The default configuration is to use
-   * the api when available. But it can also be deactivated with config.use_native
+   * the api when available. But it can also be deactivated with config.useNative
    * @returns {Object}   The crypto module or 'undefined'
    */
   getNodeCrypto: function() {
-    if (!config.use_native) {
+    if (!config.useNative) {
       return;
     }
 
@@ -612,7 +612,7 @@ export default {
   },
 
   getNodeZlib: function() {
-    if (!config.use_native) {
+    if (!config.useNative) {
       return;
     }
 
@@ -676,7 +676,7 @@ export default {
    * Parse user id.
    */
   parseUserId: function(userid) {
-    if (userid.length > config.max_userid_length) {
+    if (userid.length > config.maxUseridLength) {
       throw new Error('User id string is too long');
     }
     try {

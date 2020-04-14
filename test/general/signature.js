@@ -1009,7 +1009,7 @@ vwjE8mqJXetNMfj8r2SCyvkEnlVRYR+/mnge+ib56FdJ8uKtqSxyvgA=
 
   it('Verify succeeds with known signed message with critical notations', async function() {
     openpgp.config.tolerant = false;
-    openpgp.config.known_notations.push('test@example.com');
+    openpgp.config.knownNotations.push('test@example.com');
     try {
       const sMsg = await openpgp.message.readArmored(signature_with_critical_notation);
       const pub_key = await openpgp.key.readArmored(pub_key_arm2);
@@ -1017,7 +1017,7 @@ vwjE8mqJXetNMfj8r2SCyvkEnlVRYR+/mnge+ib56FdJ8uKtqSxyvgA=
       openpgp.stream.pipe(sMsg.getLiteralData(), new openpgp.stream.WritableStream());
       expect(await verified[0].verified).to.be.true;
     } finally {
-      openpgp.config.known_notations.pop();
+      openpgp.config.knownNotations.pop();
       openpgp.config.tolerant = true;
     }
   });
